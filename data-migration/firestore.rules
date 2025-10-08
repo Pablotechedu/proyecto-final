@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function para verificar si el usuario está autenticado
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function para obtener datos del usuario
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    // Helper function para obtener el rol del usuario
+    function getUserRole() {
+      return getUserData().role;
+    }
+    
+    // Helper function para verificar si es director
+    function isDirector() {
+      return isAuthenticated() && getUserData().isDirector == true;
+    }
+    
+    // Helper function para verificar si es admin
+    function isAdmin() {
+      return isAuthenticated() && (getUserRole() == 'admin' || isDirector());
+    }
+    
+    // Helper function para verificar si es admin o editor
+    function isAdminOrEditor() {
+      return isAuthenticated() && (getUserRole() == 'admin' || getUserRole() == 'editor' || isDirector());
+    }
+    
+    // Colección: users
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+    
+    // Colección: patients
+    match /patients/{patientId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrEditor();
+      
+      // Subcollection: parentTutors
+      match /parentTutors/{parentId} {
+        allow read: if isAuthenticated();
+        allow write: if isAdminOrEditor();
+      }
+      
+      // Subcollection: relatedProfessionals
+      match /relatedProfessionals/{professionalId} {
+        allow read: if isAuthenticated();
+        allow write: if isAdminOrEditor();
+      }
+    }
+    
+    // Colección: sessions
+    match /sessions/{sessionId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update: if isAuthenticated();
+      allow delete: if isAdminOrEditor();
+    }
+    
+    // Colección: payments
+    match /payments/{paymentId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdminOrEditor();
+    }
+    
+    // Colección: expenses
+    match /expenses/{expenseId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // Colección: payrolls
+    match /payrolls/{payrollId} {
+      allow read: if isAdmin();
+      allow write: if isAdmin();
+    }
+    
+    // Colección: formTemplates
+    match /formTemplates/{templateId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+  }
+}
