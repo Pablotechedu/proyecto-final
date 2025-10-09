@@ -1,0 +1,55 @@
+function processProyeccionData(month, year) {
+  try {
+    // Check and adjust time zone if needed
+    var scriptTimeZone = Utilities.formatDate(new Date(), "GMT-06", "yyyy-MM-dd HH:mm:ss");
+    Logger.log("Script time zone: " + scriptTimeZone);
+
+    // Specify the spreadsheet ID and sheet name
+    var spreadsheetId = '17iT6ajbNetyiceqmjs1HJd7Ij-nb9id4WZmseEDYG-g';
+    var sheetName = 'Proyeccion';
+
+    // Get the spreadsheet and sheet
+    var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
+    var sheet = spreadsheet.getSheetByName(sheetName);
+
+    // Clear any existing data in the sheet
+    sheet.clear();
+
+    // Add headers for the data
+    sheet.appendRow(['Calendar ID', 'Description', 'Title', 'Start Time', 'End Time', 'Location']);
+
+    // Specify multiple calendar IDs
+    var calendarIds = ['monica@learningmodels.com.gt', 'ximena@learningmodels.com.gt', 'miranda@learningmodels.com.gt', 'fernanda@learningmodels.com.gt','mariajimena@learningmodels.com.gt'];
+
+    // Set date range based on selected month and year
+    var startDate = new Date(year, month, 1);
+    var endDate = new Date(year, month + 1, 1);
+
+    // Iterate through each calendar ID
+    for (var i = 0; i < calendarIds.length; i++) {
+      var calendarId = calendarIds[i];
+      var calendar = CalendarApp.getCalendarById(calendarId);
+
+      // Get events from the calendar
+      var events = calendar.getEvents(startDate, endDate, { singleEvents: false });
+
+      // Iterate through the events and append them to the sheet
+      for (var j = 0; j < events.length; j++) {
+        var event = events[j];
+        sheet.appendRow([calendarId, event.getDescription(), event.getTitle(), event.getStartTime(), event.getEndTime(), event.getLocation()]);
+      }
+    }
+
+    sheet.getRange("G2").setFormula('=arrayformula(if(A2:A="","",iferror((E2:E-D2:D)*24,"")))');
+    sheet.getRange("G1").setValue("Total Horas");
+
+    // Show completion message
+    SpreadsheetApp.getUi().alert('Se ha terminado de cargar el reporte de eventos del Calendario');
+    
+    return "Success";
+    
+  } catch (error) {
+    Logger.log("Error in processCalendarData: " + error.toString());
+    throw new Error("Error procesando los datos: " + error.toString());
+  }
+}
