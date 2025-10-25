@@ -1,20 +1,23 @@
 const { google } = require('googleapis');
 const admin = require('firebase-admin');
+const serviceAccount = require('./serviceAccountKey.json');
 
 // Inicializar Firebase Admin si no está inicializado
 if (!admin.apps.length) {
-  admin.initializeApp();
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount)
+  });
 }
 
 const db = admin.firestore();
 
-// Mapeo de calendarios a IDs de terapeutas en Firestore
+// Mapeo de calendarios a IDs de terapeutas en Firestore (UIDs de Firebase Authentication)
 const CALENDAR_THERAPIST_MAP = {
-  'monica@learningmodels.com.gt': 'gENhg7u2GJdQnnRuge6ZRleu1ih1',
-  'ximena@learningmodels.com.gt': 'ximena_therapist_id', // TODO: Actualizar con ID real
-  'miranda@learningmodels.com.gt': 'miranda_therapist_id', // TODO: Actualizar con ID real
-  'fernanda@learningmodels.com.gt': 'fernanda_therapist_id', // TODO: Actualizar con ID real
-  'mariajimena@learningmodels.com.gt': 'jimena_therapist_id' // TODO: Actualizar con ID real
+  'monica@learningmodels.com.gt': 'gENhg7u2GJdQnnRuge6ZRIeu11h1',
+  'ximena@learningmodels.com.gt': 'jHivS425lyQgZsnLTzu1C753hXr1',
+  'miranda@learningmodels.com.gt': 'qVRXmMLmAzYoFbJ95G8uHGeHQC03',
+  'fernanda@learningmodels.com.gt': 'd2nvXT1ZLrek4qv8vDQIUIDiXWv1',
+  'mariajimena@learningmodels.com.gt': '4m9MClyIJhdSDIEa2hGn7WiDL3c2'
 };
 
 /**
@@ -54,11 +57,30 @@ async function findPatientByCode(patientCode) {
 }
 
 /**
+ * Obtiene información del terapeuta
+ */
+async function getTherapistInfo(therapistId) {
+  try {
+    const therapistDoc = await db.collection('users').doc(therapistId).get();
+    if (!therapistDoc.exists) {
+      return { name: 'Terapeuta Desconocido' };
+    }
+    return therapistDoc.data();
+  } catch (error) {
+    console.error(`Error obteniendo terapeuta ${therapistId}:`, error);
+    return { name: 'Terapeuta Desconocido' };
+  }
+}
+
+/**
  * Crea o actualiza una sesión en Firestore
  */
 async function createOrUpdateSession(eventData) {
   try {
-    const { eventId, patientId, therapistId, startTime, endTime, title, location, calendarId } = eventData;
+    const { eventId, patient, therapistId, startTime, endTime, title, location, calendarId } = eventData;
+    
+    // Obtener información del terapeuta
+    const therapist = await getTherapistInfo(therapistId);
     
     // Calcular duración en horas
     const durationMs = endTime.getTime() - startTime.getTime();
@@ -68,25 +90,46 @@ async function createOrUpdateSession(eventData) {
     const sessionId = `gcal_${eventId}`;
     
     const sessionData = {
-      patientId,
+      // IDs
+      patientId: patient.id,
       therapistId,
+      
+      // Información del paciente (para queries)
+      patientCode: patient.patientCode,
+      patientName: `${patient.firstName} ${patient.lastName}`,
+      
+      // Información del terapeuta
+      therapistName: therapist.name || 'Terapeuta',
+      
+      // Tiempos (como Timestamp para queries)
       startTime: admin.firestore.Timestamp.fromDate(startTime),
       endTime: admin.firestore.Timestamp.fromDate(endTime),
       duration: durationHours,
+      
+      // Tipo de sesión (inferir del título o usar genérico)
+      sessionType: title || 'Terapia',
+      
+      // Metadata
       title: title || '',
       location: location || '',
       source: 'google_calendar',
       calendarId,
       googleEventId: eventId,
+      
+      // Estado
       status: 'Scheduled',
       formCompleted: false,
+      notes: '',
+      
+      // Timestamps
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
     
     // Usar set con merge para crear o actualizar
     await db.collection('sessions').doc(sessionId).set(sessionData, { merge: true });
     
-    console.log(`✅ Sesión ${sessionId} creada/actualizada para paciente ${patientId}`);
+    console.log(`✅ Sesión ${sessionId} creada/actualizada para paciente ${patient.patientCode}`);
     return sessionId;
   } catch (error) {
     console.error('Error creando/actualizando sesión:', error);
@@ -137,7 +180,7 @@ async function syncCalendar(calendar, calendarId, therapistId, startDate, endDat
       // Crear/actualizar sesión
       const eventData = {
         eventId: event.id,
-        patientId: patient.id,
+        patient: patient, // Pasar objeto completo del paciente
         therapistId: therapistId,
         startTime: new Date(event.start.dateTime || event.start.date),
         endTime: new Date(event.end.dateTime || event.end.date),
@@ -167,10 +210,14 @@ async function syncAllCalendars(startDate, endDate) {
     console.log('🚀 Iniciando sincronización de calendarios...');
     console.log(`   Rango: ${startDate.toISOString()} - ${endDate.toISOString()}`);
     
-    // Configurar autenticación con Service Account
+    // Configurar autenticación con Service Account y delegación de usuario
     const auth = new google.auth.GoogleAuth({
-      keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS,
-      scopes: ['https://www.googleapis.com/auth/calendar.readonly']
+      keyFile: './serviceAccountKey.json',
+      scopes: ['https://www.googleapis.com/auth/calendar.readonly'],
+      // Delegar como Mónica para acceder a todos los calendarios
+      clientOptions: {
+        subject: 'monica@learningmodels.com.gt'
+      }
     });
     
     const calendar = google.calendar({ version: 'v3', auth });
@@ -206,14 +253,16 @@ async function syncAllCalendars(startDate, endDate) {
  */
 exports.syncCalendarEvents = async (req, res) => {
   try {
-    // Obtener rango de fechas (por defecto: hoy)
+    const today = new Date();
+    
+    // Obtener rango de fechas (por defecto: mes completo)
     const startDate = req.query.startDate 
       ? new Date(req.query.startDate) 
-      : new Date(new Date().setHours(0, 0, 0, 0));
+      : new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
     
     const endDate = req.query.endDate 
       ? new Date(req.query.endDate) 
-      : new Date(new Date().setHours(23, 59, 59, 999));
+      : new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
     
     const result = await syncAllCalendars(startDate, endDate);
     
@@ -231,9 +280,16 @@ exports.syncCalendarEvents = async (req, res) => {
  * Función para ejecutar localmente (testing)
  */
 async function runLocal() {
+  // Sincronizar todo el mes actual
   const today = new Date();
-  const startDate = new Date(today.setHours(0, 0, 0, 0));
-  const endDate = new Date(today.setHours(23, 59, 59, 999));
+  
+  // Primer día del mes a las 00:00:00
+  const startDate = new Date(today.getFullYear(), today.getMonth(), 1, 0, 0, 0, 0);
+  
+  // Último día del mes a las 23:59:59
+  const endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
+  
+  console.log(`📅 Sincronizando mes completo: ${startDate.toLocaleDateString('es-GT')} - ${endDate.toLocaleDateString('es-GT')}`);
   
   await syncAllCalendars(startDate, endDate);
 }

@@ -109,7 +109,7 @@ export default function Patients() {
           try {
             const sessionsQuery = query(
               collection(db, 'sessions'),
-              where('patientCode', '==', patient.patientCode),
+              where('patientId', '==', patient.id),
               where('status', '==', 'Completed'),
               firestoreOrderBy('startTime', 'desc'),
               limit(1)
@@ -120,14 +120,14 @@ export default function Patients() {
               enriched.lastSessionDate = lastSession.startTime;
             }
           } catch (err) {
-            console.log('Error loading sessions for patient:', patient.patientCode);
+            console.error(`Error loading sessions for patient: ${patient.id}`, err);
           }
 
           // Obtener próxima sesión
           try {
             const upcomingQuery = query(
               collection(db, 'sessions'),
-              where('patientCode', '==', patient.patientCode),
+              where('patientId', '==', patient.id),
               where('status', '==', 'Scheduled'),
               firestoreOrderBy('startTime', 'asc'),
               limit(1)
@@ -138,7 +138,7 @@ export default function Patients() {
               enriched.nextSessionDate = nextSession.startTime;
             }
           } catch (err) {
-            console.log('Error loading upcoming sessions for patient:', patient.patientCode);
+            console.error(`Error loading upcoming sessions for patient: ${patient.id}`, err);
           }
 
           // Obtener estado de pago (solo para admin/editor)
@@ -147,13 +147,13 @@ export default function Patients() {
               const currentMonth = new Date().toLocaleString('es-GT', { month: 'long', year: 'numeric' });
               const paymentsQuery = query(
                 collection(db, 'payments'),
-                where('patientCode', '==', patient.patientCode),
-                where('monthCovered', '==', currentMonth)
+                where('patientId', '==', patient.id),
+                where('month', '==', currentMonth)
               );
               const paymentsSnapshot = await getDocs(paymentsQuery);
               enriched.paymentStatus = paymentsSnapshot.empty ? 'pending' : 'paid';
             } catch (err) {
-              console.log('Error loading payments for patient:', patient.patientCode);
+              console.error(`Error loading payments for patient: ${patient.id}`, err);
             }
           }
 
@@ -179,10 +179,10 @@ export default function Patients() {
       const searchLower = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (patient) =>
-          patient.firstName.toLowerCase().includes(searchLower) ||
-          patient.lastName.toLowerCase().includes(searchLower) ||
-          patient.patientCode.toLowerCase().includes(searchLower) ||
-          patient.school.toLowerCase().includes(searchLower)
+          (patient.firstName?.toLowerCase() || '').includes(searchLower) ||
+          (patient.lastName?.toLowerCase() || '').includes(searchLower) ||
+          (patient.patientCode?.toLowerCase() || '').includes(searchLower) ||
+          (patient.school?.toLowerCase() || '').includes(searchLower)
       );
     }
 
@@ -342,7 +342,7 @@ export default function Patients() {
                 <Box flex={1}>
                   <Stack direction="row" spacing={2} alignItems="flex-start">
                     <Avatar sx={{ width: 56, height: 56, bgcolor: 'primary.main' }}>
-                      {patient.firstName[0]}{patient.lastName[0]}
+                      {(patient.firstName?.[0] || '?')}{(patient.lastName?.[0] || '?')}
                     </Avatar>
                     <Box flex={1}>
                       <Typography variant="h6" gutterBottom>
@@ -350,7 +350,7 @@ export default function Patients() {
                       </Typography>
                       <Stack direction="row" spacing={1} mb={1}>
                         <Chip
-                          label={patient.patientCode}
+                          label={patient.patientCode || 'Sin código'}
                           size="small"
                           variant="outlined"
                           color="primary"
@@ -365,15 +365,17 @@ export default function Patients() {
                         <Box display="flex" alignItems="center" gap={0.5}>
                           <SchoolIcon fontSize="small" color="action" />
                           <Typography variant="body2" color="text.secondary">
-                            {patient.school} - {patient.grade}
+                            {patient.school || 'N/A'} - {patient.grade || 'N/A'}
                           </Typography>
                         </Box>
-                        <Box display="flex" alignItems="center" gap={0.5}>
-                          <CalendarIcon fontSize="small" color="action" />
-                          <Typography variant="body2" color="text.secondary">
-                            {calculateAge(patient.birthDate)} años
-                          </Typography>
-                        </Box>
+                        {patient.birthDate && (
+                          <Box display="flex" alignItems="center" gap={0.5}>
+                            <CalendarIcon fontSize="small" color="action" />
+                            <Typography variant="body2" color="text.secondary">
+                              {calculateAge(patient.birthDate)} años
+                            </Typography>
+                          </Box>
+                        )}
                       </Stack>
                     </Box>
                   </Stack>

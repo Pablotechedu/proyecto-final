@@ -19,7 +19,21 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "patientCode",
+          "fieldPath": "patientId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "month",
+          "order": "ASCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "payments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "patientId",
           "order": "ASCENDING"
         },
         {
@@ -33,7 +47,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "patientCode",
+          "fieldPath": "patientId",
           "order": "ASCENDING"
         },
         {
@@ -51,7 +65,7 @@
       "queryScope": "COLLECTION",
       "fields": [
         {
-          "fieldPath": "patientCode",
+          "fieldPath": "patientId",
           "order": "ASCENDING"
         },
         {

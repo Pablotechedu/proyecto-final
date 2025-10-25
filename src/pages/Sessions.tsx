@@ -89,17 +89,27 @@ export default function Sessions() {
         // Terapeutas solo ven sus sesiones
         sessionsQuery = query(
           collection(db, 'sessions'),
-          where('therapistEmail', '==', user.email),
+          where('therapistId', '==', user.uid),
           orderBy('startTime', 'desc'),
           limit(100)
         );
       }
 
       const snapshot = await getDocs(sessionsQuery);
-      const sessionsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Session[];
+      const sessionsData = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          patientName: data.patientName,
+          patientCode: data.patientCode,
+          therapistName: data.therapistName,
+          startTime: data.startTime?.toDate?.()?.toISOString() || data.startTime,
+          endTime: data.endTime?.toDate?.()?.toISOString() || data.endTime,
+          status: data.status,
+          formCompleted: data.formCompleted || false,
+          modality: data.modality || data.location || 'N/A',
+        };
+      }) as Session[];
 
       setSessions(sessionsData);
     } catch (err) {
@@ -118,9 +128,9 @@ export default function Sessions() {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter(
         session =>
-          session.patientName.toLowerCase().includes(search) ||
-          session.patientCode.toLowerCase().includes(search) ||
-          session.therapistName?.toLowerCase().includes(search)
+          session.patientName?.toLowerCase().includes(search) ||
+          session.patientCode?.toLowerCase().includes(search) ||
+          (session.therapistName && session.therapistName.toLowerCase().includes(search))
       );
     }
 

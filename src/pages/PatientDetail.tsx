@@ -34,6 +34,7 @@ import {
   ParentTutor,
   RelatedProfessional 
 } from '../services/patients';
+import { useAuth } from '../hooks/useAuth';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -59,12 +60,18 @@ function TabPanel(props: TabPanelProps) {
 export default function PatientDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [parents, setParents] = useState<ParentTutor[]>([]);
   const [professionals, setProfessionals] = useState<RelatedProfessional[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentTab, setCurrentTab] = useState(0);
+
+  // Determinar el texto y destino del botón "Volver"
+  const isTherapist = user?.role === 'therapist' && !user?.isDirector;
+  const backButtonText = isTherapist ? 'Volver a Mi Hub' : 'Volver a Pacientes';
+  const backButtonPath = isTherapist ? '/hub' : '/patients';
 
   useEffect(() => {
     if (id) {
@@ -116,10 +123,10 @@ export default function PatientDetail() {
         <Alert severity="error">{error || 'Paciente no encontrado'}</Alert>
         <Button
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/patients')}
+          onClick={() => navigate(backButtonPath)}
           sx={{ mt: 2 }}
         >
-          Volver a Pacientes
+          {backButtonText}
         </Button>
       </Container>
     );
@@ -131,10 +138,10 @@ export default function PatientDetail() {
       <Box mb={3}>
         <Button
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate('/patients')}
+          onClick={() => navigate(backButtonPath)}
           sx={{ mb: 2 }}
         >
-          Volver a Pacientes
+          {backButtonText}
         </Button>
 
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start">

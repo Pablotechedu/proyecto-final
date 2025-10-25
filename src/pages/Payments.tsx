@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Box,
   Container,
@@ -25,7 +25,7 @@ import {
   Select,
   FormControl,
   InputLabel,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Add as AddIcon,
   Edit as EditIcon,
@@ -33,14 +33,14 @@ import {
   Search as SearchIcon,
   AttachFile as AttachFileIcon,
   FilterList as FilterListIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 import {
   getAllPayments,
   deletePayment,
   formatCurrency,
   Payment,
-} from '../services/payments';
-import { useAuth } from '../hooks/useAuth';
+} from "../services/payments";
+import { useAuth } from "../hooks/useAuth";
 
 export default function Payments() {
   const navigate = useNavigate();
@@ -49,11 +49,12 @@ export default function Payments() {
   const [filteredPayments, setFilteredPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [monthFilter, setMonthFilter] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [monthFilter, setMonthFilter] = useState<string>("all");
 
-  const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor' || user?.isDirector;
+  const isAdminOrEditor =
+    user?.role === "admin" || user?.role === "editor" || user?.isDirector;
 
   useEffect(() => {
     loadPayments();
@@ -70,7 +71,7 @@ export default function Payments() {
       const data = await getAllPayments(100);
       setPayments(data);
     } catch (err) {
-      setError('Error al cargar los pagos. Por favor, intenta de nuevo.');
+      setError("Error al cargar los pagos. Por favor, intenta de nuevo.");
       console.error(err);
     } finally {
       setLoading(false);
@@ -84,27 +85,29 @@ export default function Payments() {
     if (searchTerm) {
       const search = searchTerm.toLowerCase();
       filtered = filtered.filter(
-        payment =>
+        (payment) =>
           payment.patientName.toLowerCase().includes(search) ||
           payment.patientCode.toLowerCase().includes(search)
       );
     }
 
     // Filtro por tipo
-    if (typeFilter !== 'all') {
-      filtered = filtered.filter(payment => payment.type === typeFilter);
+    if (typeFilter !== "all") {
+      filtered = filtered.filter((payment) => payment.type === typeFilter);
     }
 
     // Filtro por mes
-    if (monthFilter !== 'all') {
-      filtered = filtered.filter(payment => payment.monthCovered === monthFilter);
+    if (monthFilter !== "all") {
+      filtered = filtered.filter(
+        (payment) => payment.monthCovered === monthFilter
+      );
     }
 
     setFilteredPayments(filtered);
   };
 
   const handleDelete = async (paymentId: string) => {
-    if (!window.confirm('¿Estás seguro de eliminar este pago?')) {
+    if (!window.confirm("¿Estás seguro de eliminar este pago?")) {
       return;
     }
 
@@ -112,13 +115,15 @@ export default function Payments() {
       await deletePayment(paymentId);
       await loadPayments();
     } catch (err) {
-      setError('Error al eliminar el pago.');
+      setError("Error al eliminar el pago.");
       console.error(err);
     }
   };
 
   // Obtener meses únicos para el filtro
-  const uniqueMonths = Array.from(new Set(payments.map(p => p.monthCovered))).sort();
+  const uniqueMonths = Array.from(
+    new Set(payments.map((p) => p.monthCovered))
+  ).sort();
 
   // Calcular totales
   const totalAmount = filteredPayments.reduce((sum, p) => sum + p.amount, 0);
@@ -135,7 +140,12 @@ export default function Payments() {
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="400px"
+      >
         <CircularProgress />
       </Box>
     );
@@ -145,7 +155,11 @@ export default function Payments() {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {/* Header */}
       <Box mb={4}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Stack
+          direction="row"
+          justifyContent="space-between"
+          alignItems="center"
+        >
           <Box>
             <Typography variant="h4" component="h1" gutterBottom>
               Gestión de Pagos
@@ -157,7 +171,7 @@ export default function Payments() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => navigate('/payments/new')}
+            onClick={() => navigate("/payments/new")}
           >
             Registrar Pago
           </Button>
@@ -173,7 +187,7 @@ export default function Payments() {
       {/* Filtros */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
+          <Stack direction={{ xs: "column", md: "row" }} spacing={2}>
             <TextField
               fullWidth
               placeholder="Buscar por paciente o código..."
@@ -208,8 +222,10 @@ export default function Payments() {
                 onChange={(e) => setMonthFilter(e.target.value)}
               >
                 <MenuItem value="all">Todos</MenuItem>
-                {uniqueMonths.map(month => (
-                  <MenuItem key={month} value={month}>{month}</MenuItem>
+                {uniqueMonths.map((month) => (
+                  <MenuItem key={month} value={month}>
+                    {month}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -220,10 +236,12 @@ export default function Payments() {
       {/* Resumen */}
       <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="h6">
-              Total Filtrado
-            </Typography>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <Typography variant="h6">Total Filtrado</Typography>
             <Typography variant="h4" color="primary">
               {formatCurrency(totalAmount)}
             </Typography>
@@ -258,7 +276,9 @@ export default function Payments() {
                     <TableRow key={payment.id} hover>
                       <TableCell>
                         <Typography variant="body2">
-                          {new Date(payment.paymentDate).toLocaleDateString('es-GT')}
+                          {new Date(payment.paymentDate).toLocaleDateString(
+                            "es-GT"
+                          )}
                         </Typography>
                       </TableCell>
                       <TableCell>
@@ -279,11 +299,11 @@ export default function Payments() {
                           label={payment.type}
                           size="small"
                           color={
-                            payment.type === 'Terapia'
-                              ? 'primary'
-                              : payment.type === 'Evaluacion'
-                              ? 'success'
-                              : 'default'
+                            payment.type === "Terapia"
+                              ? "primary"
+                              : payment.type === "Evaluacion"
+                              ? "success"
+                              : "default"
                           }
                         />
                       </TableCell>
@@ -302,7 +322,9 @@ export default function Payments() {
                           <IconButton
                             size="small"
                             color="primary"
-                            onClick={() => window.open(payment.driveLink, '_blank')}
+                            onClick={() =>
+                              window.open(payment.driveLink, "_blank")
+                            }
                           >
                             <AttachFileIcon fontSize="small" />
                           </IconButton>
@@ -313,18 +335,25 @@ export default function Payments() {
                         )}
                       </TableCell>
                       <TableCell align="center">
-                        <Stack direction="row" spacing={1} justifyContent="center">
+                        <Stack
+                          direction="row"
+                          spacing={1}
+                          justifyContent="center"
+                        >
                           <IconButton
                             size="small"
-                            onClick={() => navigate(`/payments/${payment.id}/edit`)}
+                            onClick={() =>
+                              navigate(`/payments/${payment.id}/edit`)
+                            }
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
-                          {user?.role === 'admin' && (
+                          {(user?.role === "admin" || user?.isDirector) && (
                             <IconButton
                               size="small"
                               color="error"
                               onClick={() => handleDelete(payment.id)}
+                              title="Eliminar pago"
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>

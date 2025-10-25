@@ -15,6 +15,7 @@ import { db } from './firebase';
 
 export interface Session {
   id: string;
+  patientId?: string;
   patientCode: string;
   patientName: string;
   therapistId: string;
@@ -51,17 +52,30 @@ export const getTodaySessions = async (therapistId: string): Promise<Session[]> 
     const q = query(
       sessionsRef,
       where('therapistId', '==', therapistId),
-      where('startTime', '>=', today.toISOString()),
-      where('startTime', '<', tomorrow.toISOString()),
+      where('startTime', '>=', Timestamp.fromDate(today)),
+      where('startTime', '<', Timestamp.fromDate(tomorrow)),
       orderBy('startTime', 'asc')
     );
     
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Session));
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        patientId: data.patientId,
+        patientCode: data.patientCode,
+        patientName: data.patientName,
+        therapistId: data.therapistId,
+        therapistName: data.therapistName,
+        startTime: data.startTime?.toDate?.()?.toISOString() || data.startTime,
+        endTime: data.endTime?.toDate?.()?.toISOString() || data.endTime,
+        status: data.status,
+        sessionType: data.sessionType || 'Terapia',
+        notes: data.notes || '',
+        formCompleted: data.formCompleted || false,
+      } as Session;
+    });
   } catch (error) {
     console.error('Error fetching today sessions:', error);
     throw error;
@@ -80,17 +94,29 @@ export const getUpcomingSessions = async (
     const q = query(
       sessionsRef,
       where('therapistId', '==', therapistId),
-      where('startTime', '>=', now.toISOString()),
+      where('startTime', '>=', Timestamp.fromDate(now)),
       orderBy('startTime', 'asc'),
       firestoreLimit(limitCount)
     );
     
     const snapshot = await getDocs(q);
     
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Session));
+    return snapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        patientCode: data.patientCode,
+        patientName: data.patientName,
+        therapistId: data.therapistId,
+        therapistName: data.therapistName,
+        startTime: data.startTime?.toDate?.()?.toISOString() || data.startTime,
+        endTime: data.endTime?.toDate?.()?.toISOString() || data.endTime,
+        status: data.status,
+        sessionType: data.sessionType || 'Terapia',
+        notes: data.notes || '',
+        formCompleted: data.formCompleted || false,
+      } as Session;
+    });
   } catch (error) {
     console.error('Error fetching upcoming sessions:', error);
     throw error;

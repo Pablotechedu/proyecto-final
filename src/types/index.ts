@@ -25,6 +25,8 @@ export interface Patient {
     notes: string
   }
   assignedTherapist?: string
+  hourlyRate?: number
+  paymentFrequency?: 'weekly' | 'monthly' | 'semanal' | 'mensual'
 }
 
 export interface RateHistory {

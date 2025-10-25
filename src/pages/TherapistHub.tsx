@@ -266,7 +266,10 @@ export default function TherapistHub() {
                               bgcolor: 'action.selected',
                             },
                           }}
-                          onClick={() => navigate(`/patients/${session.patientCode}`)}
+                          onClick={() => {
+                            // Al hacer clic en la tarjeta, ir al formulario de la sesión
+                            navigate(`/sessions/${session.id}/form`);
+                          }}
                         >
                           <CardContent>
                             <Stack direction="row" spacing={2} alignItems="flex-start">
@@ -291,7 +294,22 @@ export default function TherapistHub() {
                               {/* Información */}
                               <Box flex={1}>
                                 <Stack direction="row" justifyContent="space-between" alignItems="flex-start" mb={1}>
-                                  <Typography variant="subtitle1" fontWeight="medium">
+                                  <Typography 
+                                    variant="subtitle1" 
+                                    fontWeight="medium"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const patientRef = session.patientId || session.patientCode;
+                                      navigate(`/patients/${patientRef}`);
+                                    }}
+                                    sx={{
+                                      cursor: 'pointer',
+                                      '&:hover': {
+                                        color: 'primary.main',
+                                        textDecoration: 'underline',
+                                      },
+                                    }}
+                                  >
                                     {session.patientName}
                                   </Typography>
                                   <Chip
@@ -320,8 +338,9 @@ export default function TherapistHub() {
                                 size="small"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  navigate(`/patients/${session.patientCode}`);
+                                  navigate(`/sessions/${session.id}/form`);
                                 }}
+                                title="Completar formulario"
                               >
                                 <ArrowForwardIcon />
                               </IconButton>

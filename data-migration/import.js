@@ -90,8 +90,33 @@ function createImporter(config) {
           const batch = db.batch();
 
           results.forEach((record) => {
-            // Aquí puedes agregar transformaciones si es necesario
-            // Por ejemplo: convertir fechas, parsear números, etc.
+            // Transformaciones de datos para la colección de pacientes
+            if (config.collection === 'patients') {
+              // Convertir hourlyRate a número si existe
+              if (record.hourlyRate) {
+                record.hourlyRate = parseFloat(record.hourlyRate);
+              }
+              
+              // Convertir age a número si existe
+              if (record.age) {
+                record.age = parseInt(record.age, 10);
+              }
+              
+              // Convertir currentRate a número si existe
+              if (record.currentRate) {
+                record.currentRate = parseFloat(record.currentRate);
+              }
+              
+              // Limpiar espacios en assignedTherapist si tiene múltiples valores
+              if (record.assignedTherapist && record.assignedTherapist.includes(',')) {
+                // Mantener como string pero limpiar espacios alrededor de las comas
+                record.assignedTherapist = record.assignedTherapist
+                  .split(',')
+                  .map(email => email.trim())
+                  .join(',');
+              }
+            }
+            
             const docRef = db.collection(config.collection).doc();
             batch.set(docRef, record);
           });
