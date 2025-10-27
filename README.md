@@ -237,8 +237,6 @@ npm test
 
 ## 📝 Documentación Adicional
 
-- [Documentación del Proyecto](./PROYECTO_FINAL_DOCUMENTACION.md)
-- [Guía de Migración](./MIGRATION_COMPLETE.md)
 - [API Testing](./backend/TEST_API.md)
 - [Backend README](./backend/README.md)
 

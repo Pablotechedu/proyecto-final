@@ -95,9 +95,8 @@ Thumbs.db
 *.tmp
 *.temp
 
-# Data migration files (opcional - contienen datos sensibles)
-data-migration/*.csv
-data-migration/*.xlsx
-data-migration/*.json
-!data-migration/firestore.rules
-!data-migration/deploy-security-rules.js
+# Documentación interna (no subir a GitHub)
+docs/
+
+# Scripts de migración (contienen datos sensibles)
+../migration-scripts/
