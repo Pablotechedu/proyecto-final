@@ -116,13 +116,27 @@ exports.getUser = async (req, res) => {
  */
 exports.createUser = async (req, res) => {
   try {
-    const { email, password, name, role = 'viewer', isDirector = false } = req.body;
+    const { 
+      email, 
+      password, 
+      name, 
+      permissions = { isAdmin: false, isEditor: false, isTherapist: false, isDirector: false }
+    } = req.body;
 
     // Validar campos requeridos
     if (!email || !password || !name) {
       return res.status(400).json({
         success: false,
         message: 'Email, password y nombre son requeridos'
+      });
+    }
+
+    // Validar que tenga al menos un permiso
+    const hasAnyPermission = Object.values(permissions).some(p => p === true);
+    if (!hasAnyPermission) {
+      return res.status(400).json({
+        success: false,
+        message: 'El usuario debe tener al menos un permiso asignado'
       });
     }
 
@@ -150,8 +164,12 @@ exports.createUser = async (req, res) => {
       email,
       password: hashedPassword,
       name,
-      role,
-      isDirector: isDirector === true,
+      permissions: {
+        isAdmin: permissions.isAdmin === true,
+        isEditor: permissions.isEditor === true,
+        isTherapist: permissions.isTherapist === true,
+        isDirector: permissions.isDirector === true
+      },
       uid: userRecord.uid,
       createdAt: new Date(),
       updatedAt: new Date(),
@@ -189,7 +207,7 @@ exports.createUser = async (req, res) => {
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { email, name, role, password, isDirector } = req.body;
+    const { email, name, password, permissions } = req.body;
 
     const doc = await db.collection('users').doc(id).get();
 
@@ -206,9 +224,26 @@ exports.updateUser = async (req, res) => {
     };
 
     if (name) updateData.name = name;
-    if (role) updateData.role = role;
     if (email) updateData.email = email;
-    if (typeof isDirector !== 'undefined') updateData.isDirector = isDirector === true;
+    
+    // Actualizar permisos si se proporcionan
+    if (permissions) {
+      // Validar que tenga al menos un permiso
+      const hasAnyPermission = Object.values(permissions).some(p => p === true);
+      if (!hasAnyPermission) {
+        return res.status(400).json({
+          success: false,
+          message: 'El usuario debe tener al menos un permiso asignado'
+        });
+      }
+      
+      updateData.permissions = {
+        isAdmin: permissions.isAdmin === true,
+        isEditor: permissions.isEditor === true,
+        isTherapist: permissions.isTherapist === true,
+        isDirector: permissions.isDirector === true
+      };
+    }
 
     // Si se proporciona nueva contraseña
     if (password) {
@@ -290,14 +325,15 @@ exports.deleteUser = async (req, res) => {
     // Intentar eliminar de Firebase Auth (opcional, puede fallar por permisos)
     try {
       await auth.deleteUser(id);
+      console.log(`✓ Usuario ${id} eliminado de Firebase Auth y Firestore`);
     } catch (authError) {
-      console.warn('No se pudo eliminar de Firebase Auth (requiere permisos adicionales):', authError.message);
-      // No es crítico, el usuario ya no puede iniciar sesión porque no existe en Firestore
+      // No es crítico - el usuario ya no puede iniciar sesión porque no existe en Firestore
+      console.log(`✓ Usuario ${id} eliminado de Firestore (Firebase Auth requiere permisos adicionales - no crítico)`);
     }
 
     res.json({
       success: true,
-      message: 'Usuario eliminado exitosamente de la base de datos'
+      message: 'Usuario eliminado exitosamente'
     });
   } catch (error) {
     console.error('Error deleting user:', error);

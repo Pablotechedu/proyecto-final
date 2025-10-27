@@ -1,9 +1,18 @@
+export interface UserPermissions {
+  isAdmin: boolean
+  isEditor: boolean
+  isTherapist: boolean
+  isDirector: boolean
+}
+
 export interface User {
   uid: string
   email: string
   name: string
-  role: 'admin' | 'editor' | 'therapist'
-  isDirector?: boolean // Mónica tiene acceso admin + terapeuta
+  permissions: UserPermissions
+  // Campos legacy para compatibilidad
+  role?: 'admin' | 'editor' | 'therapist'
+  isDirector?: boolean
 }
 
 export interface Patient {

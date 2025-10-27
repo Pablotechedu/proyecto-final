@@ -153,12 +153,36 @@ exports.login = async (req, res) => {
       });
     }
     
-    // Generar token
+    // Obtener permisos (compatibilidad con sistema antiguo y nuevo)
+    let permissions = userData.permissions;
+    
+    // Si no tiene permisos (usuario antiguo), convertir role a permisos
+    if (!permissions && userData.role) {
+      permissions = {
+        isAdmin: userData.role === 'admin',
+        isEditor: userData.role === 'editor',
+        isTherapist: userData.role === 'therapist',
+        isDirector: userData.isDirector || false
+      };
+    }
+    
+    // Asegurar que permissions existe
+    if (!permissions) {
+      permissions = {
+        isAdmin: false,
+        isEditor: false,
+        isTherapist: false,
+        isDirector: false
+      };
+    }
+    
+    // Generar token con permisos
     const token = generateToken({
+      id: userDoc.id,
       userId: userDoc.id,
       email: userData.email,
-      role: userData.role,
-      isDirector: userData.isDirector || false
+      name: userData.name,
+      permissions: permissions
     });
     
     // Actualizar último login
@@ -175,8 +199,7 @@ exports.login = async (req, res) => {
           id: userDoc.id,
           email: userData.email,
           name: userData.name,
-          role: userData.role,
-          isDirector: userData.isDirector || false,
+          permissions: permissions,
           googleCalendarId: userData.googleCalendarId
         }
       }
@@ -198,7 +221,8 @@ exports.login = async (req, res) => {
  */
 exports.getMe = async (req, res) => {
   try {
-    const userRef = db.collection('users').doc(req.user.userId);
+    const userId = req.user.userId || req.user.id;
+    const userRef = db.collection('users').doc(userId);
     const userDoc = await userRef.get();
     
     if (!userDoc.exists) {
@@ -210,14 +234,30 @@ exports.getMe = async (req, res) => {
     
     const userData = userDoc.data();
     
+    // Obtener permisos (compatibilidad con sistema antiguo y nuevo)
+    let permissions = userData.permissions;
+    
+    if (!permissions && userData.role) {
+      permissions = {
+        isAdmin: userData.role === 'admin',
+        isEditor: userData.role === 'editor',
+        isTherapist: userData.role === 'therapist',
+        isDirector: userData.isDirector || false
+      };
+    }
+    
     res.json({
       success: true,
       data: {
         id: userDoc.id,
         email: userData.email,
         name: userData.name,
-        role: userData.role,
-        isDirector: userData.isDirector || false,
+        permissions: permissions || {
+          isAdmin: false,
+          isEditor: false,
+          isTherapist: false,
+          isDirector: false
+        },
         googleCalendarId: userData.googleCalendarId,
         phone: userData.phone,
         createdAt: userData.createdAt
