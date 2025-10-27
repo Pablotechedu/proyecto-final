@@ -15,6 +15,7 @@ import Payments from "./pages/Payments";
 import PaymentForm from "./pages/PaymentForm";
 import TherapistHub from "./pages/TherapistHub";
 import SessionForm from "./pages/SessionForm";
+import Users from "./pages/Users";
 
 function App() {
   return (
@@ -51,6 +52,7 @@ function App() {
             <Route path="payments" element={<Payments />} />
             <Route path="payments/new" element={<PaymentForm />} />
             <Route path="payments/:paymentId/edit" element={<PaymentForm />} />
+            <Route path="users" element={<Users />} />
           </Route>
         </Routes>
       </Box>

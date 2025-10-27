@@ -1,338 +1,133 @@
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
-  limit as firestoreLimit,
-  Timestamp 
-} from 'firebase/firestore';
-import { db } from './firebase';
+import api, { handleApiError } from './api';
 
 export interface Payment {
   id: string;
+  patientId?: string;
   patientCode: string;
   patientName: string;
   amount: number;
-  paymentDate: string;
+  paymentDate: any;
   paymentMethod: string;
   monthCovered: string;
   type: 'Terapia' | 'Evaluacion' | 'Otro';
   driveLink?: string;
   notes?: string;
+  status?: 'Pending' | 'Completed' | 'Cancelled';
+  createdAt?: any;
+  updatedAt?: any;
+  createdBy?: string;
 }
 
-export interface Evaluation {
-  id: string;
-  patientCode: string;
-  patientName: string;
-  totalAmount: number;
-  installments: {
-    installmentNumber: number;
-    amount: number;
-    dueDate: string;
-    paid: boolean;
-    paymentId?: string;
-  }[];
-  createdDate: string;
-  status: 'pending' | 'partial' | 'completed';
+export interface PaymentsResponse {
+  success: boolean;
+  data: Payment[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
 }
 
-// CRUD de Pagos
+export interface PaymentResponse {
+  success: boolean;
+  data: Payment;
+}
 
-// Crear nuevo pago
-export const createPayment = async (paymentData: Omit<Payment, 'id'>): Promise<string> => {
+// Obtener todos los pagos con paginación y filtros
+export const getPayments = async (
+  page: number = 1,
+  limit: number = 10,
+  patientId: string = '',
+  status: string = ''
+): Promise<PaymentsResponse> => {
   try {
-    const paymentsRef = collection(db, 'payments');
-    
-    // Crear objeto limpio sin valores undefined
-    const cleanData: any = {
-      createdAt: new Date().toISOString(),
-    };
-    
-    // Solo agregar campos que tengan valor definido
-    Object.keys(paymentData).forEach(key => {
-      const value = (paymentData as any)[key];
-      if (value !== undefined && value !== null) {
-        cleanData[key] = value;
-      }
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(patientId && { patientId }),
+      ...(status && { status })
     });
-    
-    const docRef = await addDoc(paymentsRef, cleanData);
-    return docRef.id;
+
+    const response = await api.get(`/payments?${params}`);
+    return response.data;
   } catch (error) {
-    console.error('Error creating payment:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
-// Obtener pago por ID
-export const getPaymentById = async (paymentId: string): Promise<Payment | null> => {
+// Obtener un pago por ID
+export const getPayment = async (id: string): Promise<PaymentResponse> => {
   try {
-    const paymentRef = doc(db, 'payments', paymentId);
-    const snapshot = await getDoc(paymentRef);
-    
-    if (snapshot.exists()) {
-      return {
-        id: snapshot.id,
-        ...snapshot.data()
-      } as Payment;
-    }
-    return null;
+    const response = await api.get(`/payments/${id}`);
+    return response.data;
   } catch (error) {
-    console.error('Error fetching payment:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
-// Actualizar pago
-export const updatePayment = async (
-  paymentId: string,
-  paymentData: Partial<Payment>
-): Promise<void> => {
+// Crear un nuevo pago
+export const createPayment = async (paymentData: Partial<Payment>): Promise<PaymentResponse> => {
   try {
-    const paymentRef = doc(db, 'payments', paymentId);
-    
-    // Crear objeto limpio sin valores undefined
-    const cleanData: any = {
-      updatedAt: new Date().toISOString(),
-    };
-    
-    // Solo agregar campos que tengan valor definido
-    Object.keys(paymentData).forEach(key => {
-      const value = (paymentData as any)[key];
-      if (value !== undefined && value !== null) {
-        cleanData[key] = value;
-      }
-    });
-    
-    await updateDoc(paymentRef, cleanData);
+    const response = await api.post('/payments', paymentData);
+    return response.data;
   } catch (error) {
-    console.error('Error updating payment:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
-// Eliminar pago
-export const deletePayment = async (paymentId: string): Promise<void> => {
+// Actualizar un pago
+export const updatePayment = async (id: string, paymentData: Partial<Payment>): Promise<PaymentResponse> => {
   try {
-    const paymentRef = doc(db, 'payments', paymentId);
-    await deleteDoc(paymentRef);
+    const response = await api.put(`/payments/${id}`, paymentData);
+    return response.data;
   } catch (error) {
-    console.error('Error deleting payment:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
-// Obtener todos los pagos con paginación
-export const getAllPayments = async (limitCount: number = 50): Promise<Payment[]> => {
+// Eliminar un pago
+export const deletePayment = async (id: string): Promise<{ success: boolean; message: string }> => {
   try {
-    const paymentsRef = collection(db, 'payments');
-    const q = query(
-      paymentsRef,
-      orderBy('paymentDate', 'desc'),
-      firestoreLimit(limitCount)
-    );
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Payment));
+    const response = await api.delete(`/payments/${id}`);
+    return response.data;
   } catch (error) {
-    console.error('Error fetching payments:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
-// Obtener pagos de un paciente
-export const getPatientPayments = async (
-  patientCode: string,
-  limitCount: number = 20
-): Promise<Payment[]> => {
+// Obtener pagos de un paciente específico
+export const getPatientPayments = async (patientId: string, page: number = 1, limit: number = 50): Promise<PaymentsResponse> => {
+  return getPayments(page, limit, patientId);
+};
+
+// Obtener todos los pagos (sin paginación) - para compatibilidad
+export const getAllPayments = async (): Promise<Payment[]> => {
   try {
-    const paymentsRef = collection(db, 'payments');
-    const q = query(
-      paymentsRef,
-      where('patientCode', '==', patientCode),
-      orderBy('paymentDate', 'desc'),
-      firestoreLimit(limitCount)
-    );
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Payment));
+    const response = await getPayments(1, 1000);
+    return response.data;
   } catch (error) {
-    console.error('Error fetching patient payments:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
-// Obtener pagos del mes actual
-export const getCurrentMonthPayments = async (): Promise<Payment[]> => {
-  try {
-    const now = new Date();
-    const currentMonth = now.toLocaleString('es-GT', { month: 'long', year: 'numeric' });
-    
-    const paymentsRef = collection(db, 'payments');
-    const q = query(
-      paymentsRef,
-      where('monthCovered', '==', currentMonth),
-      orderBy('paymentDate', 'desc')
-    );
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Payment));
-  } catch (error) {
-    console.error('Error fetching current month payments:', error);
-    throw error;
-  }
-};
-
-// CRUD de Evaluaciones
-
-// Crear evaluación con cuotas
-export const createEvaluation = async (
-  evaluationData: Omit<Evaluation, 'id'>
-): Promise<string> => {
-  try {
-    const evaluationsRef = collection(db, 'evaluations');
-    const docRef = await addDoc(evaluationsRef, {
-      ...evaluationData,
-      createdAt: new Date().toISOString(),
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error('Error creating evaluation:', error);
-    throw error;
-  }
-};
-
-// Obtener evaluación por ID
-export const getEvaluationById = async (evaluationId: string): Promise<Evaluation | null> => {
-  try {
-    const evaluationRef = doc(db, 'evaluations', evaluationId);
-    const snapshot = await getDoc(evaluationRef);
-    
-    if (snapshot.exists()) {
-      return {
-        id: snapshot.id,
-        ...snapshot.data()
-      } as Evaluation;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error fetching evaluation:', error);
-    throw error;
-  }
-};
-
-// Obtener evaluaciones de un paciente
-export const getPatientEvaluations = async (patientCode: string): Promise<Evaluation[]> => {
-  try {
-    const evaluationsRef = collection(db, 'evaluations');
-    const q = query(
-      evaluationsRef,
-      where('patientCode', '==', patientCode),
-      orderBy('createdDate', 'desc')
-    );
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Evaluation));
-  } catch (error) {
-    console.error('Error fetching patient evaluations:', error);
-    throw error;
-  }
-};
-
-// Marcar cuota como pagada
-export const markInstallmentAsPaid = async (
-  evaluationId: string,
-  installmentNumber: number,
-  paymentId: string
-): Promise<void> => {
-  try {
-    const evaluation = await getEvaluationById(evaluationId);
-    if (!evaluation) throw new Error('Evaluation not found');
-
-    const updatedInstallments = evaluation.installments.map(inst => 
-      inst.installmentNumber === installmentNumber
-        ? { ...inst, paid: true, paymentId }
-        : inst
-    );
-
-    const paidCount = updatedInstallments.filter(inst => inst.paid).length;
-    const status = paidCount === 0 ? 'pending' 
-      : paidCount === updatedInstallments.length ? 'completed' 
-      : 'partial';
-
-    const evaluationRef = doc(db, 'evaluations', evaluationId);
-    await updateDoc(evaluationRef, {
-      installments: updatedInstallments,
-      status,
-      updatedAt: new Date().toISOString(),
-    });
-  } catch (error) {
-    console.error('Error marking installment as paid:', error);
-    throw error;
-  }
-};
-
-// Calcular cuotas sugeridas
-export const calculateInstallments = (
-  totalAmount: number,
-  numberOfInstallments: number = 3
-): number[] => {
-  const installmentAmount = Math.round((totalAmount / numberOfInstallments) * 100) / 100;
-  const installments = Array(numberOfInstallments).fill(installmentAmount);
-  
-  // Ajustar la última cuota para que sume exactamente el total
-  const sum = installments.reduce((a, b) => a + b, 0);
-  const difference = Math.round((totalAmount - sum) * 100) / 100;
-  installments[installments.length - 1] += difference;
-  
-  return installments;
-};
-
-// Formatear moneda
+// Helper function para formatear moneda
 export const formatCurrency = (amount: number): string => {
   return new Intl.NumberFormat('es-GT', {
     style: 'currency',
-    currency: 'GTQ',
+    currency: 'GTQ'
   }).format(amount);
 };
 
-// Obtener mes actual en formato español
+// Helper function para obtener el mes actual en formato texto
 export const getCurrentMonth = (): string => {
+  const months = [
+    'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+    'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+  ];
   const now = new Date();
-  return now.toLocaleString('es-GT', { month: 'long', year: 'numeric' });
+  return `${months[now.getMonth()]} ${now.getFullYear()}`;
 };
 
-// Generar fechas de vencimiento para cuotas
-export const generateDueDates = (
-  startDate: Date,
-  numberOfInstallments: number
-): string[] => {
-  const dueDates: string[] = [];
-  
-  for (let i = 0; i < numberOfInstallments; i++) {
-    const dueDate = new Date(startDate);
-    dueDate.setMonth(dueDate.getMonth() + i);
-    dueDates.push(dueDate.toISOString().split('T')[0]);
-  }
-  
-  return dueDates;
-};
+// Alias para compatibilidad
+export const getPaymentById = getPayment;

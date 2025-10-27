@@ -1,247 +1,215 @@
-import { 
-  collection, 
-  getDocs, 
-  doc, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  query, 
-  where, 
-  orderBy, 
-  limit as firestoreLimit,
-  Timestamp 
-} from 'firebase/firestore';
-import { db } from './firebase';
+import api, { handleApiError } from './api';
 
 export interface Session {
   id: string;
-  patientId?: string;
-  patientCode: string;
-  patientName: string;
-  therapistId: string;
-  therapistName: string;
-  startTime: string;
-  endTime: string;
-  status: 'Scheduled' | 'Completed' | 'Cancelled' | 'NoShow';
-  sessionType: string;
+  patientId: string;
+  patientCode?: string;
+  patientName?: string;
+  therapistId?: string;
+  therapistName?: string;
+  startTime: any;
+  endTime?: any;
+  duration?: number;
+  status: 'Scheduled' | 'Completed' | 'Cancelled' | 'No Show';
+  sessionType?: string;
   notes?: string;
-  formCompleted: boolean;
+  objectives?: string[];
+  activities?: string[];
+  progress?: string;
+  homework?: string;
+  nextSessionPlan?: string;
+  formCompleted?: boolean;
+  createdAt?: any;
+  updatedAt?: any;
+  createdBy?: string;
 }
 
 export interface PendingTask {
   id: string;
-  type: 'session-form' | 'report' | 'other';
   title: string;
   description: string;
-  patientCode: string;
   patientName: string;
+  patientCode: string;
   sessionId?: string;
-  dueDate: string;
   priority: 'high' | 'medium' | 'low';
+  dueDate?: any;
 }
 
-// Obtener sesiones del día para un terapeuta
+export interface SessionsResponse {
+  success: boolean;
+  data: Session[];
+  pagination: {
+    currentPage: number;
+    totalPages: number;
+    totalItems: number;
+    itemsPerPage: number;
+  };
+}
+
+export interface SessionResponse {
+  success: boolean;
+  data: Session;
+}
+
+// Obtener todas las sesiones con paginación y filtros
+export const getSessions = async (
+  page: number = 1,
+  limit: number = 10,
+  patientId: string = '',
+  status: string = ''
+): Promise<SessionsResponse> => {
+  try {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: limit.toString(),
+      ...(patientId && { patientId }),
+      ...(status && { status })
+    });
+
+    const response = await api.get(`/sessions?${params}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(handleApiError(error));
+  }
+};
+
+// Obtener una sesión por ID
+export const getSession = async (id: string): Promise<SessionResponse> => {
+  try {
+    const response = await api.get(`/sessions/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(handleApiError(error));
+  }
+};
+
+// Crear una nueva sesión
+export const createSession = async (sessionData: Partial<Session>): Promise<SessionResponse> => {
+  try {
+    const response = await api.post('/sessions', sessionData);
+    return response.data;
+  } catch (error) {
+    throw new Error(handleApiError(error));
+  }
+};
+
+// Actualizar una sesión
+export const updateSession = async (id: string, sessionData: Partial<Session>): Promise<SessionResponse> => {
+  try {
+    const response = await api.put(`/sessions/${id}`, sessionData);
+    return response.data;
+  } catch (error) {
+    throw new Error(handleApiError(error));
+  }
+};
+
+// Eliminar una sesión
+export const deleteSession = async (id: string): Promise<{ success: boolean; message: string }> => {
+  try {
+    const response = await api.delete(`/sessions/${id}`);
+    return response.data;
+  } catch (error) {
+    throw new Error(handleApiError(error));
+  }
+};
+
+// Obtener sesiones de un paciente específico
+export const getPatientSessions = async (patientId: string, page: number = 1, limit: number = 50): Promise<SessionsResponse> => {
+  return getSessions(page, limit, patientId);
+};
+
+// Obtener todas las sesiones (sin paginación) - para compatibilidad
+export const getAllSessions = async (): Promise<Session[]> => {
+  try {
+    const response = await getSessions(1, 1000);
+    return response.data;
+  } catch (error) {
+    throw new Error(handleApiError(error));
+  }
+};
+
+// Helper function para calcular duración de sesión
+export const calculateDuration = (startTime: any, endTime: any): number => {
+  if (!startTime || !endTime) return 0;
+  
+  const start = startTime.toDate ? startTime.toDate() : new Date(startTime);
+  const end = endTime.toDate ? endTime.toDate() : new Date(endTime);
+  
+  const diffMs = end.getTime() - start.getTime();
+  const diffMins = Math.round(diffMs / 60000);
+  
+  return diffMins;
+};
+
+// Helper function para formatear hora
+export const formatTime = (timestamp: any): string => {
+  if (!timestamp) return '';
+  
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  
+  return date.toLocaleTimeString('es-GT', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true
+  });
+};
+
+// Obtener sesiones de hoy para un terapeuta
 export const getTodaySessions = async (therapistId: string): Promise<Session[]> => {
   try {
+    const response = await getAllSessions();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
-    const sessionsRef = collection(db, 'sessions');
-    const q = query(
-      sessionsRef,
-      where('therapistId', '==', therapistId),
-      where('startTime', '>=', Timestamp.fromDate(today)),
-      where('startTime', '<', Timestamp.fromDate(tomorrow)),
-      orderBy('startTime', 'asc')
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        patientId: data.patientId,
-        patientCode: data.patientCode,
-        patientName: data.patientName,
-        therapistId: data.therapistId,
-        therapistName: data.therapistName,
-        startTime: data.startTime?.toDate?.()?.toISOString() || data.startTime,
-        endTime: data.endTime?.toDate?.()?.toISOString() || data.endTime,
-        status: data.status,
-        sessionType: data.sessionType || 'Terapia',
-        notes: data.notes || '',
-        formCompleted: data.formCompleted || false,
-      } as Session;
+    return response.filter(session => {
+      if (session.therapistId !== therapistId) return false;
+      
+      const sessionDate = session.startTime.toDate ? session.startTime.toDate() : new Date(session.startTime);
+      return sessionDate >= today && sessionDate < tomorrow;
     });
   } catch (error) {
-    console.error('Error fetching today sessions:', error);
-    throw error;
+    console.error('Error getting today sessions:', error);
+    return [];
   }
 };
 
-// Obtener próximas sesiones de un terapeuta
-export const getUpcomingSessions = async (
-  therapistId: string,
-  limitCount: number = 10
-): Promise<Session[]> => {
-  try {
-    const now = new Date();
-    
-    const sessionsRef = collection(db, 'sessions');
-    const q = query(
-      sessionsRef,
-      where('therapistId', '==', therapistId),
-      where('startTime', '>=', Timestamp.fromDate(now)),
-      orderBy('startTime', 'asc'),
-      firestoreLimit(limitCount)
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        patientCode: data.patientCode,
-        patientName: data.patientName,
-        therapistId: data.therapistId,
-        therapistName: data.therapistName,
-        startTime: data.startTime?.toDate?.()?.toISOString() || data.startTime,
-        endTime: data.endTime?.toDate?.()?.toISOString() || data.endTime,
-        status: data.status,
-        sessionType: data.sessionType || 'Terapia',
-        notes: data.notes || '',
-        formCompleted: data.formCompleted || false,
-      } as Session;
-    });
-  } catch (error) {
-    console.error('Error fetching upcoming sessions:', error);
-    throw error;
-  }
-};
-
-// Obtener tareas pendientes de un terapeuta
+// Obtener tareas pendientes para un terapeuta
 export const getPendingTasks = async (therapistId: string): Promise<PendingTask[]> => {
   try {
-    // Obtener sesiones completadas sin formulario
-    const sessionsRef = collection(db, 'sessions');
-    const q = query(
-      sessionsRef,
-      where('therapistId', '==', therapistId),
-      where('status', '==', 'Completed'),
-      where('formCompleted', '==', false),
-      orderBy('startTime', 'desc'),
-      firestoreLimit(10)
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    const tasks: PendingTask[] = snapshot.docs.map(doc => {
-      const session = doc.data() as Session;
-      const sessionDate = new Date(session.startTime);
-      const daysSince = Math.floor((Date.now() - sessionDate.getTime()) / (1000 * 60 * 60 * 24));
+    const response = await getAllSessions();
+    const tasks: PendingTask[] = [];
+
+    response.forEach(session => {
+      if (session.therapistId !== therapistId) return;
       
-      return {
-        id: doc.id,
-        type: 'session-form',
-        title: 'Completar formulario de sesión',
-        description: `Sesión del ${sessionDate.toLocaleDateString('es-GT')}`,
-        patientCode: session.patientCode,
-        patientName: session.patientName,
-        sessionId: doc.id,
-        dueDate: session.startTime,
-        priority: daysSince > 2 ? 'high' : daysSince > 0 ? 'medium' : 'low',
-      };
+      // Tarea: Sesión completada sin formulario
+      if (session.status === 'Completed' && !session.formCompleted) {
+        tasks.push({
+          id: `form-${session.id}`,
+          title: 'Completar formulario de sesión',
+          description: `Sesión del ${new Date(session.startTime).toLocaleDateString('es-GT')}`,
+          patientName: session.patientName || 'Paciente',
+          patientCode: session.patientCode || '',
+          sessionId: session.id,
+          priority: 'high',
+          dueDate: session.startTime
+        });
+      }
     });
-    
-    return tasks;
-  } catch (error) {
-    console.error('Error fetching pending tasks:', error);
-    throw error;
-  }
-};
 
-// Marcar sesión como completada
-export const markSessionAsCompleted = async (sessionId: string): Promise<void> => {
-  try {
-    const sessionRef = doc(db, 'sessions', sessionId);
-    await updateDoc(sessionRef, {
-      status: 'Completed',
-      updatedAt: new Date().toISOString(),
+    // Ordenar por prioridad y fecha
+    return tasks.sort((a, b) => {
+      if (a.priority === 'high' && b.priority !== 'high') return -1;
+      if (a.priority !== 'high' && b.priority === 'high') return 1;
+      return 0;
     });
   } catch (error) {
-    console.error('Error marking session as completed:', error);
-    throw error;
+    console.error('Error getting pending tasks:', error);
+    return [];
   }
 };
 
-// Obtener sesiones de un paciente
-export const getPatientSessions = async (
-  patientCode: string,
-  limitCount: number = 20
-): Promise<Session[]> => {
-  try {
-    const sessionsRef = collection(db, 'sessions');
-    const q = query(
-      sessionsRef,
-      where('patientCode', '==', patientCode),
-      orderBy('startTime', 'desc'),
-      firestoreLimit(limitCount)
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Session));
-  } catch (error) {
-    console.error('Error fetching patient sessions:', error);
-    throw error;
-  }
-};
-
-// Formatear hora
-export const formatTime = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleTimeString('es-GT', { 
-    hour: '2-digit', 
-    minute: '2-digit',
-    hour12: true 
-  });
-};
-
-// Formatear fecha
-export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('es-GT', { 
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  });
-};
-
-// Calcular duración de sesión en minutos
-export const calculateDuration = (startTime: string, endTime: string): number => {
-  const start = new Date(startTime);
-  const end = new Date(endTime);
-  return Math.round((end.getTime() - start.getTime()) / (1000 * 60));
-};
-
-// Verificar si una sesión es hoy
-export const isToday = (dateString: string): boolean => {
-  const date = new Date(dateString);
-  const today = new Date();
-  return date.toDateString() === today.toDateString();
-};
-
-// Verificar si una sesión ya pasó
-export const isPast = (dateString: string): boolean => {
-  const date = new Date(dateString);
-  const now = new Date();
-  return date < now;
-};
+// Alias para compatibilidad
+export const getSessionById = getSession;

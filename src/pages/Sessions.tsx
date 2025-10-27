@@ -29,12 +29,12 @@ import {
 import {
   Edit as EditIcon,
   Visibility as VisibilityIcon,
+  Delete as DeleteIcon,
   Search as SearchIcon,
   CheckCircle as CheckCircleIcon,
   Schedule as ScheduleIcon,
 } from '@mui/icons-material';
-import { collection, query, where, getDocs, orderBy, limit } from 'firebase/firestore';
-import { db } from '../services/firebase';
+import { getSessions, deleteSession } from '../services/sessions';
 import { useAuth } from '../hooks/useAuth';
 
 interface Session {
@@ -76,38 +76,30 @@ export default function Sessions() {
       setLoading(true);
       setError(null);
 
-      let sessionsQuery;
-
-      if (isAdminOrEditor) {
-        // Admin/Editor ven todas las sesiones
-        sessionsQuery = query(
-          collection(db, 'sessions'),
-          orderBy('startTime', 'desc'),
-          limit(100)
-        );
-      } else {
-        // Terapeutas solo ven sus sesiones
-        sessionsQuery = query(
-          collection(db, 'sessions'),
-          where('therapistId', '==', user.uid),
-          orderBy('startTime', 'desc'),
-          limit(100)
-        );
+      const response = await getSessions(1, 1000);
+      
+      // Debug: ver el formato de los datos
+      if (response.data.length > 0) {
+        console.log('Primera sesión:', response.data[0]);
+        console.log('startTime type:', typeof response.data[0].startTime);
+        console.log('startTime value:', response.data[0].startTime);
       }
-
-      const snapshot = await getDocs(sessionsQuery);
-      const sessionsData = snapshot.docs.map(doc => {
-        const data = doc.data();
+      
+      const sessionsData = response.data.map(session => {
+        // Convertir Timestamps a objetos Date o mantener como están
+        let startTime = session.startTime;
+        let endTime = session.endTime || session.startTime;
+        
         return {
-          id: doc.id,
-          patientName: data.patientName,
-          patientCode: data.patientCode,
-          therapistName: data.therapistName,
-          startTime: data.startTime?.toDate?.()?.toISOString() || data.startTime,
-          endTime: data.endTime?.toDate?.()?.toISOString() || data.endTime,
-          status: data.status,
-          formCompleted: data.formCompleted || false,
-          modality: data.modality || data.location || 'N/A',
+          id: session.id,
+          patientName: session.patientName || 'N/A',
+          patientCode: session.patientCode || '',
+          therapistName: session.therapistName || 'N/A',
+          startTime: startTime,
+          endTime: endTime,
+          status: session.status,
+          formCompleted: session.formCompleted || false,
+          modality: session.sessionType || 'N/A',
         };
       }) as Session[];
 
@@ -117,6 +109,20 @@ export default function Sessions() {
       setError('Error al cargar las sesiones. Por favor, intenta de nuevo.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (sessionId: string) => {
+    if (!window.confirm('¿Estás seguro de eliminar esta sesión?')) {
+      return;
+    }
+
+    try {
+      await deleteSession(sessionId);
+      await loadSessions();
+    } catch (err) {
+      setError('Error al eliminar la sesión.');
+      console.error(err);
     }
   };
 
@@ -142,21 +148,71 @@ export default function Sessions() {
     setFilteredSessions(filtered);
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-GT', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    });
+  const formatDate = (dateString: any) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      let date: Date;
+      
+      // Si tiene _seconds (Timestamp serializado de Firestore)
+      if (dateString._seconds !== undefined) {
+        date = new Date(dateString._seconds * 1000);
+      }
+      // Si tiene método toDate (Timestamp de Firestore)
+      else if (dateString.toDate) {
+        date = dateString.toDate();
+      }
+      // Si es string o número
+      else {
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) {
+        return 'N/A';
+      }
+      
+      return date.toLocaleDateString('es-GT', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'N/A';
+    }
   };
 
-  const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('es-GT', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+  const formatTime = (dateString: any) => {
+    if (!dateString) return 'N/A';
+    
+    try {
+      let date: Date;
+      
+      // Si tiene _seconds (Timestamp serializado de Firestore)
+      if (dateString._seconds !== undefined) {
+        date = new Date(dateString._seconds * 1000);
+      }
+      // Si tiene método toDate (Timestamp de Firestore)
+      else if (dateString.toDate) {
+        date = dateString.toDate();
+      }
+      // Si es string o número
+      else {
+        date = new Date(dateString);
+      }
+      
+      if (isNaN(date.getTime())) {
+        return 'N/A';
+      }
+      
+      return date.toLocaleTimeString('es-GT', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'N/A';
+    }
   };
 
   const getStatusColor = (status: string) => {
@@ -338,6 +394,16 @@ export default function Sessions() {
                               title={session.formCompleted ? 'Ver formulario' : 'Completar formulario'}
                             >
                               {session.formCompleted ? <VisibilityIcon fontSize="small" /> : <EditIcon fontSize="small" />}
+                            </IconButton>
+                          )}
+                          {isAdminOrEditor && (
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleDelete(session.id)}
+                              title="Eliminar sesión"
+                            >
+                              <DeleteIcon fontSize="small" />
                             </IconButton>
                           )}
                         </Stack>

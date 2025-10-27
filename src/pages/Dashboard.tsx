@@ -17,6 +17,7 @@ import {
   TableRow,
   Paper,
   IconButton,
+  Grid,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -26,6 +27,9 @@ import {
   AccountBalance as AccountBalanceIcon,
   Warning as WarningIcon,
   Visibility as VisibilityIcon,
+  People as PeopleIcon,
+  EventNote as EventNoteIcon,
+  CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -35,6 +39,7 @@ import {
   FinancialSummary,
   Payment,
 } from '../services/financial';
+import { getDashboardStats, DashboardStats } from '../services/stats';
 import { useAuth } from '../hooks/useAuth';
 
 interface KPICardProps {
@@ -102,6 +107,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
 
   const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor' || user?.isDirector;
 
@@ -114,16 +120,25 @@ export default function Dashboard() {
       setLoading(true);
       setError(null);
 
-      const [summaryData, paymentsData] = await Promise.all([
+      const [summaryData, paymentsData, statsData] = await Promise.all([
         getFinancialSummary(),
         getRecentPayments(5),
+        getDashboardStats(),
       ]);
 
       setSummary(summaryData);
       setRecentPayments(paymentsData);
-    } catch (err) {
-      setError('Error al cargar el dashboard. Por favor, intenta de nuevo.');
-      console.error(err);
+      setStats(statsData);
+    } catch (err: any) {
+      console.error('Dashboard error:', err);
+      
+      // Si es error de permisos de Firestore
+      if (err.message?.includes('Missing or insufficient permissions') || 
+          err.message?.includes('FirebaseError')) {
+        setError('Error de permisos. Por favor, cierra sesión y vuelve a iniciar sesión para actualizar tus permisos.');
+      } else {
+        setError('Error al cargar el dashboard. Por favor, intenta de nuevo.');
+      }
     } finally {
       setLoading(false);
     }
@@ -164,14 +179,48 @@ export default function Dashboard() {
       {/* Header */}
       <Box mb={4}>
         <Typography variant="h4" component="h1" gutterBottom>
-          Dashboard Financiero
+          Dashboard General
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Resumen del mes de {new Date().toLocaleString('es-GT', { month: 'long', year: 'numeric' })}
         </Typography>
       </Box>
 
-      {/* KPIs */}
+      {/* Estadísticas Generales */}
+      {stats && (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
+            gap: 3,
+            mb: 4,
+          }}
+        >
+          <KPICard
+            title="Total Pacientes"
+            value={stats.patients.total.toString()}
+            icon={<PeopleIcon />}
+            color="primary"
+          />
+          <KPICard
+            title="Sesiones Completadas"
+            value={stats.sessions.completed.toString()}
+            icon={<CheckCircleIcon />}
+            color="success"
+          />
+          <KPICard
+            title="Sesiones Este Mes"
+            value={stats.sessions.thisMonth.toString()}
+            icon={<EventNoteIcon />}
+            color="primary"
+          />
+        </Box>
+      )}
+
+      {/* KPIs Financieros */}
+      <Typography variant="h5" gutterBottom sx={{ mt: 4, mb: 2 }}>
+        Resumen Financiero
+      </Typography>
       <Box
         sx={{
           display: 'grid',

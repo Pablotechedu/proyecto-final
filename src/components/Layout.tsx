@@ -28,7 +28,8 @@ import {
   Hub,
   Notifications,
   AccountCircle,
-  Logout
+  Logout,
+  ManageAccounts
 } from '@mui/icons-material'
 import { useAuth } from '../hooks/useAuth'
 
@@ -89,6 +90,7 @@ const Layout: React.FC = () => {
       { text: 'Pacientes', icon: <People />, path: '/patients', roles: ['admin', 'editor', 'therapist'] },
       { text: 'Sesiones', icon: <EventNote />, path: '/sessions', roles: ['admin', 'editor', 'therapist'] },
       { text: 'Pagos', icon: <Payment />, path: '/payments', roles: ['admin', 'editor'] },
+      { text: 'Usuarios', icon: <ManageAccounts />, path: '/users', roles: ['admin'] },
     ]
 
     // Si es director, mostrar Dashboard + Mi Hub + resto de opciones admin

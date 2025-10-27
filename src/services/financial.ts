@@ -1,5 +1,4 @@
-import { collection, getDocs, query, where, orderBy, limit as firestoreLimit, Timestamp } from 'firebase/firestore';
-import { db } from './firebase';
+import api, { handleApiError } from './api';
 
 export interface Payment {
   id: string;
@@ -45,70 +44,37 @@ export interface FinancialSummary {
 // Obtener todos los pagos con paginación
 export const getAllPayments = async (limitCount: number = 50): Promise<Payment[]> => {
   try {
-    const paymentsRef = collection(db, 'payments');
-    const q = query(
-      paymentsRef,
-      orderBy('paymentDate', 'desc'),
-      firestoreLimit(limitCount)
-    );
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Payment));
+    const response = await api.get(`/payments?limit=${limitCount}`);
+    return response.data.data || [];
   } catch (error) {
     console.error('Error fetching payments:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
-// Obtener pagos del mes actual (usa índice compuesto)
+// Obtener pagos del mes actual
 export const getCurrentMonthPayments = async (): Promise<Payment[]> => {
   try {
     const now = new Date();
     const currentMonth = now.toLocaleString('es-GT', { month: 'long', year: 'numeric' });
     
-    const paymentsRef = collection(db, 'payments');
-    const q = query(
-      paymentsRef,
-      where('monthCovered', '==', currentMonth),
-      orderBy('paymentDate', 'desc')
-    );
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Payment));
+    const response = await api.get(`/payments?monthCovered=${encodeURIComponent(currentMonth)}&limit=1000`);
+    return response.data.data || [];
   } catch (error) {
     console.error('Error fetching current month payments:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
 // Obtener gastos del mes actual
 export const getCurrentMonthExpenses = async (): Promise<Expense[]> => {
   try {
-    const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    
-    const expensesRef = collection(db, 'expenses');
-    const snapshot = await getDocs(expensesRef);
-    
-    return snapshot.docs
-      .map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as Expense))
-      .filter(expense => {
-        const expenseDate = new Date(expense.date);
-        return expenseDate >= firstDay && expenseDate <= lastDay;
-      });
+    // Por ahora retornamos array vacío ya que no tenemos endpoint de expenses
+    // TODO: Crear endpoint /api/expenses en el backend
+    return [];
   } catch (error) {
     console.error('Error fetching expenses:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
@@ -154,46 +120,25 @@ export const getFinancialSummary = async (): Promise<FinancialSummary> => {
   }
 };
 
-// Obtener últimos N pagos (usa índice simple)
+// Obtener últimos N pagos
 export const getRecentPayments = async (limitCount: number = 5): Promise<Payment[]> => {
   try {
-    const paymentsRef = collection(db, 'payments');
-    const q = query(
-      paymentsRef,
-      orderBy('paymentDate', 'desc'),
-      firestoreLimit(limitCount)
-    );
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Payment));
+    const response = await api.get(`/payments?limit=${limitCount}`);
+    return response.data.data || [];
   } catch (error) {
     console.error('Error fetching recent payments:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
 // Obtener pagos de un paciente específico
 export const getPatientPayments = async (patientCode: string, limitCount: number = 10): Promise<Payment[]> => {
   try {
-    const paymentsRef = collection(db, 'payments');
-    const q = query(
-      paymentsRef,
-      where('patientCode', '==', patientCode),
-      orderBy('paymentDate', 'desc'),
-      firestoreLimit(limitCount)
-    );
-    const snapshot = await getDocs(q);
-    
-    return snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    } as Payment));
+    const response = await api.get(`/payments?patientCode=${encodeURIComponent(patientCode)}&limit=${limitCount}`);
+    return response.data.data || [];
   } catch (error) {
     console.error('Error fetching patient payments:', error);
-    throw error;
+    throw new Error(handleApiError(error));
   }
 };
 
