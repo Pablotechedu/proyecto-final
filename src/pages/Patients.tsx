@@ -32,24 +32,40 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { getPatients, deletePatient, Patient, getFullName, calculateAge } from '../services/patients';
+import { getTherapists, User } from '../services/users';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Patients() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [patients, setPatients] = useState<Patient[]>([]);
+  const [therapists, setTherapists] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [therapistFilter, setTherapistFilter] = useState<string>('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const limit = 10;
 
   useEffect(() => {
+    loadTherapists();
+  }, []);
+
+  useEffect(() => {
     loadPatients();
-  }, [page, searchTerm, statusFilter]);
+  }, [page, searchTerm, statusFilter, therapistFilter]);
+
+  const loadTherapists = async () => {
+    try {
+      const therapistsList = await getTherapists();
+      setTherapists(therapistsList);
+    } catch (err) {
+      console.error('Error loading therapists:', err);
+    }
+  };
 
   const loadPatients = async () => {
     try {
@@ -58,9 +74,17 @@ export default function Patients() {
 
       const response = await getPatients(page, limit, searchTerm, statusFilter);
       
-      setPatients(response.data);
+      // Filtrar por terapeuta del lado del cliente
+      let filteredPatients = response.data;
+      if (therapistFilter) {
+        filteredPatients = filteredPatients.filter(
+          patient => patient.assignedTherapist === therapistFilter
+        );
+      }
+      
+      setPatients(filteredPatients);
       setTotalPages(response.pagination.totalPages);
-      setTotalItems(response.pagination.totalItems);
+      setTotalItems(therapistFilter ? filteredPatients.length : response.pagination.totalItems);
     } catch (err: any) {
       setError(err.message || 'Error al cargar los pacientes');
       console.error('Error loading patients:', err);
@@ -98,14 +122,6 @@ export default function Patients() {
   };
 
   const isAdmin = user?.role === 'admin';
-
-  if (loading && page === 1) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
@@ -153,6 +169,24 @@ export default function Patients() {
                 <MenuItem value="inactive">Inactivos</MenuItem>
               </Select>
             </FormControl>
+            <FormControl sx={{ flex: 1, minWidth: 200 }}>
+              <InputLabel>Terapeuta</InputLabel>
+              <Select
+                value={therapistFilter}
+                label="Terapeuta"
+                onChange={(e) => {
+                  setTherapistFilter(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <MenuItem value="">Todos</MenuItem>
+                {therapists.map((therapist) => (
+                  <MenuItem key={therapist.id} value={therapist.id}>
+                    {therapist.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Stack>
         </CardContent>
       </Card>
@@ -173,7 +207,12 @@ export default function Patients() {
       </Box>
 
       {/* Lista de Pacientes */}
-      <Stack spacing={2}>
+      {loading && patients.length === 0 ? (
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight="300px">
+          <CircularProgress />
+        </Box>
+      ) : (
+        <Stack spacing={2}>
         {patients.map((patient) => (
           <Card
             key={patient.id}
@@ -284,7 +323,8 @@ export default function Patients() {
             </CardContent>
           </Card>
         ))}
-      </Stack>
+        </Stack>
+      )}
 
       {/* Sin resultados */}
       {patients.length === 0 && !loading && (

@@ -46,6 +46,7 @@ import {
   createUser,
   updateUser,
   User,
+  getPermissionsLabel,
   getRoleLabel,
   getRoleColor,
 } from '../services/users';
@@ -68,12 +69,16 @@ export default function Users() {
     name: '',
     email: '',
     password: '',
-    role: 'viewer',
-    isDirector: false
+    permissions: {
+      isAdmin: false,
+      isEditor: false,
+      isTherapist: false,
+      isDirector: false
+    }
   });
   const limit = 10;
 
-  const isAdmin = user?.role === 'admin';
+  const isAdmin = user?.permissions?.isAdmin;
 
   useEffect(() => {
     if (!isAdmin) {
@@ -101,15 +106,22 @@ export default function Users() {
     }
   };
 
-  const handleOpenDialog = (user?: User) => {
-    if (user) {
-      setEditingUser(user);
+  const handleOpenDialog = (userItem?: User) => {
+    if (userItem) {
+      setEditingUser(userItem);
+      // Convertir de sistema antiguo a nuevo si es necesario
+      const permissions = userItem.permissions || {
+        isAdmin: userItem.role === 'admin',
+        isEditor: userItem.role === 'editor',
+        isTherapist: userItem.role === 'therapist' || userItem.role === 'viewer',
+        isDirector: userItem.isDirector || false
+      };
+      
       setFormData({
-        name: user.name,
-        email: user.email,
+        name: userItem.name,
+        email: userItem.email,
         password: '',
-        role: user.role,
-        isDirector: user.isDirector || false
+        permissions: permissions
       });
     } else {
       setEditingUser(null);
@@ -117,8 +129,12 @@ export default function Users() {
         name: '',
         email: '',
         password: '',
-        role: 'viewer',
-        isDirector: false
+        permissions: {
+          isAdmin: false,
+          isEditor: false,
+          isTherapist: false,
+          isDirector: false
+        }
       });
     }
     setOpenDialog(true);
@@ -131,8 +147,12 @@ export default function Users() {
       name: '',
       email: '',
       password: '',
-      role: 'viewer',
-      isDirector: false
+      permissions: {
+        isAdmin: false,
+        isEditor: false,
+        isTherapist: false,
+        isDirector: false
+      }
     });
   };
 
@@ -143,8 +163,7 @@ export default function Users() {
         const updateData: any = {
           name: formData.name,
           email: formData.email,
-          role: formData.role,
-          isDirector: formData.isDirector
+          permissions: formData.permissions
         };
         if (formData.password) {
           updateData.password = formData.password;
@@ -156,7 +175,12 @@ export default function Users() {
           setError('La contraseña es requerida para crear un usuario');
           return;
         }
-        await createUser(formData);
+        await createUser({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+          permissions: formData.permissions
+        } as any);
       }
       handleCloseDialog();
       await loadUsers();
@@ -279,8 +303,7 @@ export default function Users() {
                   <TableRow>
                     <TableCell>Nombre</TableCell>
                     <TableCell>Email</TableCell>
-                    <TableCell>Rol</TableCell>
-                    <TableCell align="center">Director</TableCell>
+                    <TableCell>Permisos</TableCell>
                     <TableCell>Fecha Creación</TableCell>
                     <TableCell align="center">Acciones</TableCell>
                   </TableRow>
@@ -302,21 +325,27 @@ export default function Users() {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Chip
-                          label={getRoleLabel(userItem.role)}
-                          size="small"
-                          color={getRoleColor(userItem.role)}
-                        />
-                      </TableCell>
-                      <TableCell align="center">
-                        {userItem.isDirector && (
-                          <Chip
-                            icon={<StarIcon />}
-                            label="Director"
-                            size="small"
-                            color="secondary"
-                          />
-                        )}
+                        <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                          {userItem.permissions?.isAdmin && (
+                            <Chip label="Admin" size="small" color="error" />
+                          )}
+                          {userItem.permissions?.isEditor && (
+                            <Chip label="Editor" size="small" color="warning" />
+                          )}
+                          {userItem.permissions?.isTherapist && (
+                            <Chip label="Terapeuta" size="small" color="info" />
+                          )}
+                          {userItem.permissions?.isDirector && (
+                            <Chip label="Director" size="small" color="secondary" icon={<StarIcon />} />
+                          )}
+                          {!userItem.permissions && userItem.role && (
+                            <Chip 
+                              label={getRoleLabel(userItem.role || '')} 
+                              size="small" 
+                              color={getRoleColor(userItem.role || '')}
+                            />
+                          )}
+                        </Stack>
                       </TableCell>
                       <TableCell>
                         <Typography variant="body2">
@@ -403,27 +432,62 @@ export default function Users() {
               fullWidth
               required={!editingUser}
             />
-            <FormControl fullWidth required>
-              <InputLabel>Rol</InputLabel>
-              <Select
-                value={formData.role}
-                label="Rol"
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
-              >
-                <MenuItem value="admin">Administrador</MenuItem>
-                <MenuItem value="editor">Editor</MenuItem>
-                <MenuItem value="viewer">Visualizador</MenuItem>
-              </Select>
-            </FormControl>
-            <FormControlLabel
-              control={
-                <Checkbox
-                  checked={formData.isDirector}
-                  onChange={(e) => setFormData({ ...formData, isDirector: e.target.checked })}
+            
+            <Box>
+              <Typography variant="subtitle2" gutterBottom sx={{ mt: 1 }}>
+                Permisos del Usuario
+              </Typography>
+              <Stack spacing={1}>
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.permissions.isAdmin}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        permissions: { ...formData.permissions, isAdmin: e.target.checked }
+                      })}
+                    />
+                  }
+                  label="Administrador (acceso total al sistema)"
                 />
-              }
-              label="Es Director (acceso a todos los módulos)"
-            />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.permissions.isEditor}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        permissions: { ...formData.permissions, isEditor: e.target.checked }
+                      })}
+                    />
+                  }
+                  label="Editor (puede editar pacientes, sesiones y pagos)"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.permissions.isTherapist}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        permissions: { ...formData.permissions, isTherapist: e.target.checked }
+                      })}
+                    />
+                  }
+                  label="Terapeuta (acceso a Mi Hub y sus pacientes)"
+                />
+                <FormControlLabel
+                  control={
+                    <Checkbox
+                      checked={formData.permissions.isDirector}
+                      onChange={(e) => setFormData({ 
+                        ...formData, 
+                        permissions: { ...formData.permissions, isDirector: e.target.checked }
+                      })}
+                    />
+                  }
+                  label="Director (acceso a Dashboard y Mi Hub)"
+                />
+              </Stack>
+            </Box>
           </Stack>
         </DialogContent>
         <DialogActions>

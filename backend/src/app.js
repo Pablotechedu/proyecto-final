@@ -10,6 +10,7 @@ app.use(helmet());
 // CORS Configuration
 const allowedOrigins = [
   'http://localhost:3000',
+  'http://localhost:3001',
   'http://localhost:5173',
   process.env.FRONTEND_URL
 ].filter(Boolean);
@@ -63,6 +64,7 @@ app.use('/api/patients/:patientId/professionals', require('./routes/professional
 app.use('/api/patients/:patientId/parents', require('./routes/parentTutor.routes'));
 app.use('/api/sessions', require('./routes/session.routes'));
 app.use('/api/payments', require('./routes/payment.routes'));
+app.use('/api/financial', require('./routes/financial.routes'));
 app.use('/api/upload', require('./routes/upload.routes'));
 app.use('/api/stats', require('./routes/stats.routes'));
 app.use('/api/events', require('./routes/event.routes'));

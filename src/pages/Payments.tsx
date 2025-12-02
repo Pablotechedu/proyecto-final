@@ -54,7 +54,7 @@ export default function Payments() {
   const [monthFilter, setMonthFilter] = useState<string>("all");
 
   const isAdminOrEditor =
-    user?.role === "admin" || user?.role === "editor" || user?.isDirector;
+    user?.permissions?.isAdmin || user?.permissions?.isEditor || user?.permissions?.isDirector;
 
   useEffect(() => {
     loadPayments();
@@ -348,7 +348,7 @@ export default function Payments() {
                           >
                             <EditIcon fontSize="small" />
                           </IconButton>
-                          {(user?.role === "admin" || user?.isDirector) && (
+                          {(user?.permissions?.isAdmin || user?.permissions?.isDirector) && (
                             <IconButton
                               size="small"
                               color="error"

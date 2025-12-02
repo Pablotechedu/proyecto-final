@@ -86,10 +86,17 @@ exports.register = async (req, res) => {
       data: {
         token,
         user: {
+          uid: userRef.id,
           id: userRef.id,
           email: email.toLowerCase(),
           name,
           role: userRole,
+          permissions: {
+            isAdmin: userRole === 'admin',
+            isEditor: userRole === 'editor',
+            isTherapist: userRole === 'therapist',
+            isDirector: false
+          },
           isDirector: false
         }
       }
@@ -196,11 +203,13 @@ exports.login = async (req, res) => {
       data: {
         token,
         user: {
+          uid: userDoc.id,
           id: userDoc.id,
           email: userData.email,
           name: userData.name,
           permissions: permissions,
-          googleCalendarId: userData.googleCalendarId
+          googleCalendarId: userData.googleCalendarId,
+          role: userData.role
         }
       }
     });
@@ -249,6 +258,7 @@ exports.getMe = async (req, res) => {
     res.json({
       success: true,
       data: {
+        uid: userDoc.id,
         id: userDoc.id,
         email: userData.email,
         name: userData.name,
@@ -260,7 +270,8 @@ exports.getMe = async (req, res) => {
         },
         googleCalendarId: userData.googleCalendarId,
         phone: userData.phone,
-        createdAt: userData.createdAt
+        createdAt: userData.createdAt,
+        role: userData.role
       }
     });
     
@@ -306,16 +317,33 @@ exports.updateProfile = async (req, res) => {
     const updatedDoc = await userRef.get();
     const updatedData = updatedDoc.data();
     
+    // Obtener permisos (compatibilidad)
+    let permissions = updatedData.permissions;
+    if (!permissions && updatedData.role) {
+      permissions = {
+        isAdmin: updatedData.role === 'admin',
+        isEditor: updatedData.role === 'editor',
+        isTherapist: updatedData.role === 'therapist',
+        isDirector: updatedData.isDirector || false
+      };
+    }
+    
     res.json({
       success: true,
       message: 'Perfil actualizado exitosamente',
       data: {
+        uid: updatedDoc.id,
         id: updatedDoc.id,
         email: updatedData.email,
         name: updatedData.name,
-        role: updatedData.role,
+        permissions: permissions || {
+          isAdmin: false,
+          isEditor: false,
+          isTherapist: false,
+          isDirector: false
+        },
         phone: updatedData.phone,
-        isDirector: updatedData.isDirector || false
+        role: updatedData.role
       }
     });
     

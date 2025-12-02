@@ -84,31 +84,42 @@ const Layout: React.FC = () => {
   }
 
   const getMenuItems = () => {
-    const baseItems = [
-      { text: 'Dashboard', icon: <Dashboard />, path: '/dashboard', roles: ['admin', 'editor'] },
-      { text: 'Mi Hub', icon: <Hub />, path: '/therapist-hub', roles: ['therapist'] },
-      { text: 'Pacientes', icon: <People />, path: '/patients', roles: ['admin', 'editor', 'therapist'] },
-      { text: 'Sesiones', icon: <EventNote />, path: '/sessions', roles: ['admin', 'editor', 'therapist'] },
-      { text: 'Pagos', icon: <Payment />, path: '/payments', roles: ['admin', 'editor'] },
-      { text: 'Usuarios', icon: <ManageAccounts />, path: '/users', roles: ['admin'] },
-    ]
-
-    // Si es director, mostrar Dashboard + Mi Hub + resto de opciones admin
-    if (user.isDirector) {
-      return baseItems.filter(item => 
-        item.roles.includes('admin') || item.roles.includes('therapist')
-      )
+    const items = []
+    
+    // Dashboard - Solo Admin y Editor
+    if (user.permissions?.isAdmin || user.permissions?.isEditor) {
+      items.push({ text: 'Dashboard', icon: <Dashboard />, path: '/dashboard' })
     }
-
-    // Si no es director, filtrar por rol normal
-    return baseItems.filter(item => item.roles.includes(user.role))
+    
+    // Mi Hub - Solo Director y Terapeuta
+    if (user.permissions?.isDirector || user.permissions?.isTherapist) {
+      items.push({ text: 'Mi Hub', icon: <Hub />, path: '/therapist-hub' })
+    }
+    
+    // Pacientes - Todos pueden ver
+    items.push({ text: 'Pacientes', icon: <People />, path: '/patients' })
+    
+    // Sesiones - Todos pueden ver
+    items.push({ text: 'Sesiones', icon: <EventNote />, path: '/sessions' })
+    
+    // Pagos - Solo Admin y Editor
+    if (user.permissions?.isAdmin || user.permissions?.isEditor) {
+      items.push({ text: 'Pagos', icon: <Payment />, path: '/payments' })
+    }
+    
+    // Usuarios - Solo Admin
+    if (user.permissions?.isAdmin) {
+      items.push({ text: 'Usuarios', icon: <ManageAccounts />, path: '/users' })
+    }
+    
+    return items
   }
 
   const drawer = (
     <div>
       <Toolbar>
         <Typography variant="h6" noWrap component="div">
-          Learning Models HUB
+          Therapy HUB
         </Typography>
       </Toolbar>
       <Divider />
@@ -150,12 +161,17 @@ const Layout: React.FC = () => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
-            {getMenuItems().find(item => item.path === location.pathname)?.text || 'Learning Models HUB'}
+            {getMenuItems().find(item => item.path === location.pathname)?.text || 'Therapy HUB'}
           </Typography>
           
           {/* Notifications */}
-          <IconButton size="large" color="inherit">
-            <Badge badgeContent={4} color="error">
+          <IconButton 
+            size="large" 
+            color="inherit"
+            aria-label="Notificaciones"
+            aria-describedby="notifications-badge"
+          >
+            <Badge badgeContent={4} color="error" id="notifications-badge">
               <Notifications />
             </Badge>
           </IconButton>
@@ -164,13 +180,16 @@ const Layout: React.FC = () => {
           <div>
             <IconButton
               size="large"
-              aria-label="account of current user"
+              aria-label={`Menú de usuario - ${user.name}`}
               aria-controls="menu-appbar"
               aria-haspopup="true"
               onClick={handleMenu}
               color="inherit"
             >
-              <Avatar sx={{ width: 32, height: 32 }}>
+              <Avatar 
+                sx={{ width: 32, height: 32 }}
+                alt={user.name}
+              >
                 {user.name.charAt(0).toUpperCase()}
               </Avatar>
             </IconButton>
@@ -196,7 +215,10 @@ const Layout: React.FC = () => {
                 <ListItemText>
                   <Typography variant="body2">{user.name}</Typography>
                   <Typography variant="caption" color="text.secondary">
-                    {user.role}
+                    {user.permissions?.isAdmin && 'Admin'}
+                    {user.permissions?.isEditor && !user.permissions?.isAdmin && 'Editor'}
+                    {user.permissions?.isTherapist && !user.permissions?.isAdmin && !user.permissions?.isEditor && 'Terapeuta'}
+                    {user.permissions?.isDirector && ' + Director'}
                   </Typography>
                 </ListItemText>
               </MenuItem>

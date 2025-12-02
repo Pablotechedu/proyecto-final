@@ -109,11 +109,16 @@ export default function Dashboard() {
   const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
 
-  const isAdminOrEditor = user?.role === 'admin' || user?.role === 'editor' || user?.isDirector;
+  const isAdminOrEditor = user?.permissions?.isAdmin || user?.permissions?.isEditor || user?.permissions?.isDirector;
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
+    // Solo cargar datos si es admin o editor
+    if (isAdminOrEditor) {
+      loadDashboardData();
+    } else {
+      setLoading(false);
+    }
+  }, [isAdminOrEditor]);
 
   const loadDashboardData = async () => {
     try {

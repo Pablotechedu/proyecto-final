@@ -23,6 +23,7 @@ export interface Patient {
   startDate?: any;
   assignedTherapist?: string;
   hourlyRate?: number;
+  monthlyFee?: number;
   paymentFrequency?: string;
   googleMeetEmail?: string;
   lastProgressReport?: any;

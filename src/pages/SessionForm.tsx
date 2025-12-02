@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Box,
@@ -20,14 +20,13 @@ import {
   Save as SaveIcon,
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../services/firebase';
 import { SessionFormData } from '../types';
 import {
   createSessionForm,
   getSessionForm,
   getAvailableObjectives,
 } from '../services/sessionForms';
+import { getSessionById } from '../services/sessions';
 
 // Importar secciones del formulario
 import GeneralInfoSection from '../components/sessionForm/GeneralInfoSection';
@@ -55,6 +54,16 @@ export default function SessionForm() {
     sessionObjectives: [],
   });
 
+  // Estados para guardado automático
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const initialFormDataRef = useRef<Partial<SessionFormData>>({});
+
+  // NOTA: useBlocker requiere createBrowserRouter (data router)
+  // Por ahora usamos solo beforeunload para advertir al usuario
+  // Si se necesita bloquear navegación interna, migrar a createBrowserRouter
+
   const steps = [
     'Información General',
     'Funciones Ejecutivas',
@@ -68,6 +77,47 @@ export default function SessionForm() {
     }
   }, [sessionId]);
 
+  // Auto-save: Guardar cambios cada 30 segundos
+  useEffect(() => {
+    if (!hasUnsavedChanges || !sessionId) return;
+
+    // Limpiar timer anterior
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    // Configurar nuevo timer
+    autoSaveTimerRef.current = setTimeout(() => {
+      handleAutoSave();
+    }, 30000); // 30 segundos
+
+    // Cleanup
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [formData, hasUnsavedChanges, sessionId]);
+
+  // Detectar cambios en el formulario
+  useEffect(() => {
+    const hasChanges = JSON.stringify(formData) !== JSON.stringify(initialFormDataRef.current);
+    setHasUnsavedChanges(hasChanges);
+  }, [formData]);
+
+  // Advertencia al cerrar ventana con cambios sin guardar
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   const loadSessionData = async () => {
     if (!sessionId) return;
 
@@ -75,16 +125,14 @@ export default function SessionForm() {
       setLoading(true);
       setError(null);
 
-      // Cargar información de la sesión
-      const sessionRef = doc(db, 'sessions', sessionId);
-      const sessionSnap = await getDoc(sessionRef);
-
-      if (!sessionSnap.exists()) {
+      // Cargar información de la sesión usando la API
+      const session = await getSessionById(sessionId);
+      
+      if (!session) {
         setError('Sesión no encontrada');
         return;
       }
 
-      const session = { id: sessionSnap.id, ...sessionSnap.data() };
       setSessionInfo(session);
 
       // Cargar formulario si ya existe
@@ -92,7 +140,10 @@ export default function SessionForm() {
         const existingForm = await getSessionForm(sessionId);
         if (existingForm) {
           setFormData(existingForm);
+          initialFormDataRef.current = existingForm;
         }
+      } else {
+        initialFormDataRef.current = { sessionObjectives: [] };
       }
     } catch (err) {
       setError('Error al cargar la sesión');
@@ -109,6 +160,22 @@ export default function SessionForm() {
   const handleSectionChange = (sectionData: Partial<SessionFormData>) => {
     setFormData(prev => ({ ...prev, ...sectionData }));
   };
+
+  // Guardado automático (sin validación completa)
+  const handleAutoSave = useCallback(async () => {
+    if (!sessionId || !hasUnsavedChanges) return;
+
+    try {
+      // Guardar como borrador sin validación estricta
+      await createSessionForm(sessionId, formData as SessionFormData);
+      setLastSaved(new Date());
+      setHasUnsavedChanges(false);
+      initialFormDataRef.current = formData;
+    } catch (err) {
+      console.error('Error en guardado automático:', err);
+      // No mostrar error al usuario para no interrumpir su flujo
+    }
+  }, [sessionId, formData, hasUnsavedChanges]);
 
   const handleNext = () => {
     setActiveStep((prevStep) => prevStep + 1);
@@ -159,6 +226,11 @@ export default function SessionForm() {
       setSaving(true);
       await createSessionForm(sessionId, formData as SessionFormData);
       
+      // Marcar como guardado
+      setHasUnsavedChanges(false);
+      setLastSaved(new Date());
+      initialFormDataRef.current = formData;
+      
       // Redirigir al hub de terapeuta
       navigate('/therapist-hub');
     } catch (err) {
@@ -206,12 +278,28 @@ export default function SessionForm() {
         <Typography variant="h4" component="h1" gutterBottom>
           Formulario de Sesión
         </Typography>
-        <Stack direction="row" spacing={1} mb={2}>
+        <Stack direction="row" spacing={1} mb={2} alignItems="center">
           <Chip label={sessionInfo.patientName} color="primary" />
           <Chip 
             label={new Date(sessionInfo.startTime).toLocaleDateString('es-GT')} 
             variant="outlined" 
           />
+          {/* Indicador de guardado automático */}
+          {hasUnsavedChanges && (
+            <Chip 
+              label="Cambios sin guardar" 
+              color="warning" 
+              size="small"
+            />
+          )}
+          {lastSaved && !hasUnsavedChanges && (
+            <Chip 
+              icon={<CheckCircleIcon />}
+              label={`Guardado ${lastSaved.toLocaleTimeString('es-GT', { hour: '2-digit', minute: '2-digit' })}`}
+              color="success" 
+              size="small"
+            />
+          )}
         </Stack>
       </Box>
 

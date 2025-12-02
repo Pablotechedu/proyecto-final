@@ -20,8 +20,11 @@ const Login: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      // Redirect based on user role
-      if (user.role === 'therapist') {
+      // Redirect based on user permissions
+      // Terapeutas van a Mi Hub, otros van a Dashboard
+      if (user.permissions?.isTherapist && !user.permissions?.isAdmin && !user.permissions?.isEditor && !user.permissions?.isDirector) {
+        navigate('/therapist-hub')
+      } else if (user.permissions?.isDirector && !user.permissions?.isAdmin && !user.permissions?.isEditor) {
         navigate('/therapist-hub')
       } else {
         navigate('/dashboard')

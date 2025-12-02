@@ -35,9 +35,14 @@ exports.getPayments = async (req, res) => {
     let payments = [];
 
     snapshot.forEach(doc => {
+      const data = doc.data();
       payments.push({
         id: doc.id,
-        ...doc.data()
+        ...data,
+        // Convertir Timestamps de Firebase a formato ISO string
+        paymentDate: data.paymentDate?.toDate?.()?.toISOString() || data.paymentDate,
+        createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+        updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt
       });
     });
 
@@ -82,9 +87,14 @@ exports.getPayment = async (req, res) => {
       });
     }
 
+    const data = doc.data();
     const payment = {
       id: doc.id,
-      ...doc.data()
+      ...data,
+      // Convertir Timestamps de Firebase a formato ISO string
+      paymentDate: data.paymentDate?.toDate?.()?.toISOString() || data.paymentDate,
+      createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+      updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt
     };
 
     res.json({

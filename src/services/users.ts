@@ -1,10 +1,19 @@
 import api, { handleApiError } from './api';
 
+export interface UserPermissions {
+  isAdmin: boolean;
+  isEditor: boolean;
+  isTherapist: boolean;
+  isDirector: boolean;
+}
+
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'admin' | 'editor' | 'viewer';
+  permissions: UserPermissions;
+  // Campos legacy para compatibilidad
+  role?: 'admin' | 'editor' | 'viewer';
   isDirector?: boolean;
   uid?: string;
   createdAt?: any;
@@ -64,7 +73,7 @@ export const createUser = async (userData: {
   email: string;
   password: string;
   name: string;
-  role: string;
+  permissions: UserPermissions;
 }): Promise<UserResponse> => {
   try {
     const response = await api.post('/users', userData);
@@ -77,7 +86,12 @@ export const createUser = async (userData: {
 // Actualizar un usuario
 export const updateUser = async (
   id: string,
-  userData: Partial<User> & { password?: string }
+  userData: {
+    name?: string;
+    email?: string;
+    password?: string;
+    permissions?: UserPermissions;
+  }
 ): Promise<UserResponse> => {
   try {
     const response = await api.put(`/users/${id}`, userData);
@@ -97,22 +111,45 @@ export const deleteUser = async (id: string): Promise<{ success: boolean; messag
   }
 };
 
-// Helper para obtener el label del rol
+// Helper para obtener el label de permisos
+export const getPermissionsLabel = (permissions: UserPermissions): string => {
+  const labels: string[] = [];
+  if (permissions.isAdmin) labels.push('Admin');
+  if (permissions.isEditor) labels.push('Editor');
+  if (permissions.isTherapist) labels.push('Terapeuta');
+  if (permissions.isDirector) labels.push('Director');
+  return labels.join(' + ') || 'Sin permisos';
+};
+
+// Helper para obtener el label del rol (legacy)
 export const getRoleLabel = (role: string): string => {
   const roles: Record<string, string> = {
     admin: 'Administrador',
     editor: 'Editor',
-    viewer: 'Visualizador'
+    viewer: 'Visualizador',
+    therapist: 'Terapeuta'
   };
   return roles[role] || role;
 };
 
-// Helper para obtener el color del rol
+// Helper para obtener el color del rol (legacy)
 export const getRoleColor = (role: string): 'error' | 'warning' | 'info' | 'default' => {
   const colors: Record<string, 'error' | 'warning' | 'info' | 'default'> = {
     admin: 'error',
     editor: 'warning',
-    viewer: 'info'
+    viewer: 'info',
+    therapist: 'info'
   };
   return colors[role] || 'default';
+};
+
+// Obtener todos los terapeutas (sin paginación)
+export const getTherapists = async (): Promise<User[]> => {
+  try {
+    const response = await getUsers(1, 1000); // Obtener hasta 1000 usuarios
+    // Filtrar solo terapeutas
+    return response.data.filter(user => user.permissions.isTherapist);
+  } catch (error) {
+    throw new Error(handleApiError(error));
+  }
 };

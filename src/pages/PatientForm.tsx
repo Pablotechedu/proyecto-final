@@ -21,9 +21,8 @@ import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
 } from '@mui/icons-material';
-import { collection, addDoc, updateDoc, doc, getDocs } from 'firebase/firestore';
-import { db } from '../services/firebase';
-import { getPatientById, Patient } from '../services/patients';
+import { getPatientById, createPatient, updatePatient, Patient } from '../services/patients';
+import { getTherapists, User } from '../services/users';
 
 interface TherapistOption {
   id: string;
@@ -64,14 +63,12 @@ export default function PatientForm() {
 
   const loadTherapists = async () => {
     try {
-      const therapistsSnapshot = await getDocs(collection(db, 'users'));
-      const therapistsData = therapistsSnapshot.docs
-        .map(doc => ({
-          id: doc.id,
-          name: doc.data().name,
-          email: doc.data().email,
-        }))
-        .filter(t => t.name);
+      const therapistsList = await getTherapists();
+      const therapistsData = therapistsList.map(t => ({
+        id: t.id,
+        name: t.name,
+        email: t.email,
+      }));
       setTherapists(therapistsData);
     } catch (err) {
       console.error('Error loading therapists:', err);
@@ -84,16 +81,16 @@ export default function PatientForm() {
       const patient = await getPatientById(patientId);
       if (patient) {
         setFormData({
-          firstName: patient.firstName,
-          lastName: patient.lastName,
-          patientCode: patient.patientCode,
-          birthDate: patient.birthDate,
-          school: patient.school,
-          grade: patient.grade,
-          startDate: patient.startDate,
-          status: patient.status,
-          diagnosis: patient.diagnosis,
-          therapistEmail: patient.therapistEmail || '',
+          firstName: patient.firstName || '',
+          lastName: patient.lastName || '',
+          patientCode: patient.patientCode || '',
+          birthDate: patient.birthDate || '',
+          school: patient.school || '',
+          grade: patient.grade || '',
+          startDate: patient.startDate || '',
+          status: (patient.status as 'active' | 'inactive') || 'active',
+          diagnosis: patient.diagnosis || '',
+          therapistEmail: patient.assignedTherapist || '',
         });
       } else {
         setError('Paciente no encontrado');
@@ -157,13 +154,26 @@ export default function PatientForm() {
     try {
       setSaving(true);
 
+      // Preparar datos del paciente
+      const patientData = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        patientCode: formData.patientCode,
+        birthDate: formData.birthDate,
+        school: formData.school,
+        grade: formData.grade,
+        startDate: formData.startDate,
+        status: formData.status,
+        diagnosis: formData.diagnosis,
+        assignedTherapist: formData.therapistEmail || undefined,
+      };
+
       if (isEditMode && id) {
         // Actualizar paciente existente
-        const patientRef = doc(db, 'patients', id);
-        await updateDoc(patientRef, formData);
+        await updatePatient(id, patientData);
       } else {
         // Crear nuevo paciente
-        await addDoc(collection(db, 'patients'), formData);
+        await createPatient(patientData);
       }
 
       navigate('/patients');

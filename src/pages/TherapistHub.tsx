@@ -41,7 +41,7 @@ export default function TherapistHub() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user?.uid && (user?.role === 'therapist' || user?.isDirector)) {
+    if (user?.uid && (user?.permissions?.isTherapist || user?.permissions?.isDirector)) {
       loadHubData();
     }
   }, [user]);
@@ -93,7 +93,7 @@ export default function TherapistHub() {
   };
 
   // Si no es terapeuta ni director, mostrar mensaje
-  if (user && user.role !== 'therapist' && !user.isDirector) {
+  if (user && !user.permissions?.isTherapist && !user.permissions?.isDirector) {
     return (
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Alert severity="info">
