@@ -1,14 +1,16 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { auth } = require('../middlewares/auth.middleware');
-const { checkRole } = require('../middlewares/role.middleware');
+import {  auth  } from '../middlewares/auth.middleware.js';
+import {  checkRole  } from '../middlewares/role.middleware.js';
+import * as sessionController from '../controllers/sessionController.js';
+
 const {
   getSessions,
   getSession,
   createSession,
   updateSession,
   deleteSession
-} = require('../controllers/sessionController');
+} = sessionController;
 
 /**
  * @route   GET /api/sessions
@@ -45,4 +47,4 @@ router.put('/:id', auth, updateSession);
  */
 router.delete('/:id', auth, checkRole(['admin']), deleteSession);
 
-module.exports = router;
+export default router;

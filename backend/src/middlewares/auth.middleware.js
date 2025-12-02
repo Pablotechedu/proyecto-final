@@ -1,9 +1,9 @@
-const { verifyToken } = require('../utils/jwt');
+import { verifyToken } from '../utils/jwt.js';
 
 /**
  * Middleware para verificar autenticación JWT
  */
-exports.auth = (req, res, next) => {
+export const auth = (req, res, next) => {
   try {
     // Obtener token del header Authorization
     const authHeader = req.headers.authorization;
@@ -59,7 +59,7 @@ exports.auth = (req, res, next) => {
  * Middleware opcional de autenticación
  * Agrega el usuario si hay token, pero no falla si no hay
  */
-exports.optionalAuth = (req, res, next) => {
+export const optionalAuth = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
     

@@ -5,7 +5,7 @@
  * @param {Number} limit - Cantidad de items por página
  * @returns {Object} Datos paginados con metadata
  */
-exports.paginate = (data, page = 1, limit = 10) => {
+export const paginate = (data, page = 1, limit = 10) => {
   const startIndex = (page - 1) * limit;
   const endIndex = startIndex + limit;
   
@@ -29,7 +29,7 @@ exports.paginate = (data, page = 1, limit = 10) => {
  * @param {Object} query - Query params del request
  * @returns {Object} Parámetros de paginación validados
  */
-exports.getPaginationParams = (query) => {
+export const getPaginationParams = (query) => {
   const page = Math.max(1, parseInt(query.page) || 1);
   const limit = Math.min(100, Math.max(1, parseInt(query.limit) || 10));
   

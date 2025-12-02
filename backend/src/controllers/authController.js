@@ -1,12 +1,12 @@
-const { db } = require('../config/firebase');
-const { hashPassword, comparePassword } = require('../utils/bcrypt');
-const { generateToken } = require('../utils/jwt');
+import {  db  } from '../config/firebase.js';
+import {  hashPassword, comparePassword  } from '../utils/bcrypt.js';
+import {  generateToken  } from '../utils/jwt.js';
 
 /**
  * Registrar nuevo usuario
  * POST /api/auth/register
  */
-exports.register = async (req, res) => {
+export const register = async (req, res) => {
   try {
     const { email, password, name, role } = req.body;
     
@@ -116,7 +116,7 @@ exports.register = async (req, res) => {
  * Login de usuario
  * POST /api/auth/login
  */
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
     
@@ -228,7 +228,7 @@ exports.login = async (req, res) => {
  * Obtener usuario actual
  * GET /api/auth/me
  */
-exports.getMe = async (req, res) => {
+export const getMe = async (req, res) => {
   try {
     const userId = req.user.userId || req.user.id;
     const userRef = db.collection('users').doc(userId);
@@ -289,7 +289,7 @@ exports.getMe = async (req, res) => {
  * Actualizar perfil de usuario
  * PUT /api/auth/profile
  */
-exports.updateProfile = async (req, res) => {
+export const updateProfile = async (req, res) => {
   try {
     const { name, phone } = req.body;
     const userId = req.user.userId;
@@ -361,7 +361,7 @@ exports.updateProfile = async (req, res) => {
  * Cambiar contraseña
  * PUT /api/auth/change-password
  */
-exports.changePassword = async (req, res) => {
+export const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.userId;

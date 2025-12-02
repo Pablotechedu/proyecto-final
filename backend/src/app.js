@@ -1,6 +1,18 @@
-const express = require('express');
-const cors = require('cors');
-const helmet = require('helmet');
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import authRoutes from './routes/auth.routes.js';
+import userRoutes from './routes/user.routes.js';
+import patientRoutes from './routes/patient.routes.js';
+import professionalRoutes from './routes/professional.routes.js';
+import parentTutorRoutes from './routes/parentTutor.routes.js';
+import sessionRoutes from './routes/session.routes.js';
+import paymentRoutes from './routes/payment.routes.js';
+import financialRoutes from './routes/financial.routes.js';
+import uploadRoutes from './routes/upload.routes.js';
+import statsRoutes from './routes/stats.routes.js';
+import eventRoutes from './routes/event.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 
 const app = express();
 
@@ -57,18 +69,18 @@ app.get('/health', (req, res) => {
 });
 
 // API Routes
-app.use('/api/auth', require('./routes/auth.routes'));
-app.use('/api/users', require('./routes/user.routes'));
-app.use('/api/patients', require('./routes/patient.routes'));
-app.use('/api/patients/:patientId/professionals', require('./routes/professional.routes'));
-app.use('/api/patients/:patientId/parents', require('./routes/parentTutor.routes'));
-app.use('/api/sessions', require('./routes/session.routes'));
-app.use('/api/payments', require('./routes/payment.routes'));
-app.use('/api/financial', require('./routes/financial.routes'));
-app.use('/api/upload', require('./routes/upload.routes'));
-app.use('/api/stats', require('./routes/stats.routes'));
-app.use('/api/events', require('./routes/event.routes'));
-app.use('/api/admin', require('./routes/admin.routes'));
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/patients/:patientId/professionals', professionalRoutes);
+app.use('/api/patients/:patientId/parents', parentTutorRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/financial', financialRoutes);
+app.use('/api/upload', uploadRoutes);
+app.use('/api/stats', statsRoutes);
+app.use('/api/events', eventRoutes);
+app.use('/api/admin', adminRoutes);
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -134,4 +146,4 @@ app.use((err, req, res, next) => {
   });
 });
 
-module.exports = app;
+export default app;

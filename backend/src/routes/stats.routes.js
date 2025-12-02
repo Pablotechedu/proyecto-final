@@ -1,13 +1,15 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { auth } = require('../middlewares/auth.middleware');
-const { checkRole } = require('../middlewares/role.middleware');
+import {  auth  } from '../middlewares/auth.middleware.js';
+import {  checkRole  } from '../middlewares/role.middleware.js';
+import * as statsController from '../controllers/statsController.js';
+
 const {
   getDashboardStats,
   getSessionsByMonth,
   getRevenueByMonth,
   getTopPatients
-} = require('../controllers/statsController');
+} = statsController;
 
 /**
  * @route   GET /api/stats/dashboard
@@ -37,4 +39,4 @@ router.get('/revenue-by-month', auth, checkRole(['admin', 'editor']), getRevenue
  */
 router.get('/top-patients', auth, checkRole(['admin', 'editor']), getTopPatients);
 
-module.exports = router;
+export default router;

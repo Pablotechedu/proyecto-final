@@ -1,11 +1,11 @@
-const { db } = require('../config/firebase');
+import {  db  } from '../config/firebase.js';
 
 /**
  * @desc    Obtener estadísticas generales del dashboard
  * @route   GET /api/stats/dashboard
  * @access  Private (admin, editor)
  */
-exports.getDashboardStats = async (req, res) => {
+export const getDashboardStats = async (req, res) => {
   try {
     // Obtener totales
     const [patientsSnapshot, sessionsSnapshot, paymentsSnapshot] = await Promise.all([
@@ -112,7 +112,7 @@ exports.getDashboardStats = async (req, res) => {
  * @route   GET /api/stats/sessions-by-month
  * @access  Private (admin, editor)
  */
-exports.getSessionsByMonth = async (req, res) => {
+export const getSessionsByMonth = async (req, res) => {
   try {
     const { year = new Date().getFullYear() } = req.query;
     
@@ -154,7 +154,7 @@ exports.getSessionsByMonth = async (req, res) => {
  * @route   GET /api/stats/revenue-by-month
  * @access  Private (admin, editor)
  */
-exports.getRevenueByMonth = async (req, res) => {
+export const getRevenueByMonth = async (req, res) => {
   try {
     const { year = new Date().getFullYear() } = req.query;
     
@@ -196,7 +196,7 @@ exports.getRevenueByMonth = async (req, res) => {
  * @route   GET /api/stats/top-patients
  * @access  Private (admin, editor)
  */
-exports.getTopPatients = async (req, res) => {
+export const getTopPatients = async (req, res) => {
   try {
     const { limit = 10 } = req.query;
     

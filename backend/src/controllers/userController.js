@@ -1,12 +1,12 @@
-const { db, auth } = require('../config/firebase');
-const bcrypt = require('../utils/bcrypt');
+import {  db, auth  } from '../config/firebase.js';
+import * as bcrypt from '../utils/bcrypt.js';
 
 /**
  * @desc    Obtener todos los usuarios
  * @route   GET /api/users
  * @access  Private (admin)
  */
-exports.getUsers = async (req, res) => {
+export const getUsers = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = '', role = '' } = req.query;
 
@@ -76,7 +76,7 @@ exports.getUsers = async (req, res) => {
  * @route   GET /api/users/:id
  * @access  Private (admin)
  */
-exports.getUser = async (req, res) => {
+export const getUser = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -114,7 +114,7 @@ exports.getUser = async (req, res) => {
  * @route   POST /api/users
  * @access  Private (admin)
  */
-exports.createUser = async (req, res) => {
+export const createUser = async (req, res) => {
   try {
     const { 
       email, 
@@ -204,7 +204,7 @@ exports.createUser = async (req, res) => {
  * @route   PUT /api/users/:id
  * @access  Private (admin)
  */
-exports.updateUser = async (req, res) => {
+export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
     const { email, name, password, permissions } = req.body;
@@ -298,7 +298,7 @@ exports.updateUser = async (req, res) => {
  * @route   DELETE /api/users/:id
  * @access  Private (admin)
  */
-exports.deleteUser = async (req, res) => {
+export const deleteUser = async (req, res) => {
   try {
     const { id } = req.params;
 

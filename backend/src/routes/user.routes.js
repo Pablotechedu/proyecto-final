@@ -1,14 +1,16 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { auth } = require('../middlewares/auth.middleware');
-const { checkAdmin } = require('../middlewares/role.middleware');
+import { auth } from '../middlewares/auth.middleware.js';
+import { checkAdmin } from '../middlewares/role.middleware.js';
+import * as userController from '../controllers/userController.js';
+
 const {
   getUsers,
   getUser,
   createUser,
   updateUser,
   deleteUser
-} = require('../controllers/userController');
+} = userController;
 
 /**
  * @route   GET /api/users
@@ -45,4 +47,4 @@ router.put('/:id', auth, checkAdmin, updateUser);
  */
 router.delete('/:id', auth, checkAdmin, deleteUser);
 
-module.exports = router;
+export default router;

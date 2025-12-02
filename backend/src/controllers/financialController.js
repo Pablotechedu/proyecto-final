@@ -1,10 +1,10 @@
-const { db } = require('../config/firebase');
+import {  db  } from '../config/firebase.js';
 
 /**
  * Obtener resumen financiero del mes actual
  * GET /api/financial/summary
  */
-exports.getFinancialSummary = async (req, res) => {
+export const getFinancialSummary = async (req, res) => {
   try {
     const now = new Date();
     const currentYear = now.getFullYear();

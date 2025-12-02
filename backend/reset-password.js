@@ -1,6 +1,8 @@
-const admin = require('firebase-admin');
-const bcrypt = require('bcryptjs');
-const serviceAccount = require('./serviceAccountKey.json');
+import admin from 'firebase-admin';
+import bcrypt from 'bcryptjs';
+import { readFileSync } from 'fs';
+
+const serviceAccount = JSON.parse(readFileSync('./serviceAccountKey.json', 'utf8'));
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)

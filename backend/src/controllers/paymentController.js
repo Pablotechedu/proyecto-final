@@ -1,10 +1,10 @@
-const { db } = require('../config/firebase');
-const { paginate } = require('../utils/pagination');
+import {  db  } from '../config/firebase.js';
+import {  paginate  } from '../utils/pagination.js';
 
 // @desc    Obtener todos los pagos
 // @route   GET /api/payments
 // @access  Private
-exports.getPayments = async (req, res) => {
+export const getPayments = async (req, res) => {
   try {
     const { page = 1, limit = 10, patientId = '', patientCode = '', status = '', monthCovered = '' } = req.query;
 
@@ -74,7 +74,7 @@ exports.getPayments = async (req, res) => {
 // @desc    Obtener un pago por ID
 // @route   GET /api/payments/:id
 // @access  Private
-exports.getPayment = async (req, res) => {
+export const getPayment = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -114,7 +114,7 @@ exports.getPayment = async (req, res) => {
 // @desc    Crear un nuevo pago
 // @route   POST /api/payments
 // @access  Private
-exports.createPayment = async (req, res) => {
+export const createPayment = async (req, res) => {
   try {
     const paymentData = {
       ...req.body,
@@ -146,7 +146,7 @@ exports.createPayment = async (req, res) => {
 // @desc    Actualizar un pago
 // @route   PUT /api/payments/:id
 // @access  Private
-exports.updatePayment = async (req, res) => {
+export const updatePayment = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -189,7 +189,7 @@ exports.updatePayment = async (req, res) => {
 // @desc    Eliminar un pago
 // @route   DELETE /api/payments/:id
 // @access  Private (admin only)
-exports.deletePayment = async (req, res) => {
+export const deletePayment = async (req, res) => {
   try {
     const { id } = req.params;
 

@@ -1,7 +1,16 @@
-const admin = require("firebase-admin");
+import admin from 'firebase-admin';
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Inicializar Firebase Admin
-const serviceAccount = require("../serviceAccountKey.json");
+const serviceAccountPath = join(__dirname, '../serviceAccountKey.json');
+const serviceAccount = JSON.parse(readFileSync(serviceAccountPath, 'utf8'));
+
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });

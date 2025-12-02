@@ -1,14 +1,16 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { auth } = require('../middlewares/auth.middleware');
-const { checkRole } = require('../middlewares/role.middleware');
+import {  auth  } from '../middlewares/auth.middleware.js';
+import {  checkRole  } from '../middlewares/role.middleware.js';
+import * as paymentController from '../controllers/paymentController.js';
+
 const {
   getPayments,
   getPayment,
   createPayment,
   updatePayment,
   deletePayment
-} = require('../controllers/paymentController');
+} = paymentController;
 
 /**
  * @route   GET /api/payments
@@ -45,4 +47,4 @@ router.put('/:id', auth, updatePayment);
  */
 router.delete('/:id', auth, checkRole(['admin']), deletePayment);
 
-module.exports = router;
+export default router;

@@ -1,10 +1,10 @@
-const { db } = require('../config/firebase');
-const { paginate } = require('../utils/pagination');
+import {  db  } from '../config/firebase.js';
+import {  paginate  } from '../utils/pagination.js';
 
 // @desc    Obtener todos los pacientes
 // @route   GET /api/patients
 // @access  Private
-exports.getPatients = async (req, res) => {
+export const getPatients = async (req, res) => {
   try {
     const { page = 1, limit = 10, search = '', status = '' } = req.query;
 
@@ -75,7 +75,7 @@ exports.getPatients = async (req, res) => {
 // @desc    Obtener un paciente por ID
 // @route   GET /api/patients/:id
 // @access  Private
-exports.getPatient = async (req, res) => {
+export const getPatient = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -126,7 +126,7 @@ exports.getPatient = async (req, res) => {
 // @desc    Crear un nuevo paciente
 // @route   POST /api/patients
 // @access  Private (admin, editor)
-exports.createPatient = async (req, res) => {
+export const createPatient = async (req, res) => {
   try {
     const patientData = {
       ...req.body,
@@ -158,7 +158,7 @@ exports.createPatient = async (req, res) => {
 // @desc    Actualizar un paciente
 // @route   PUT /api/patients/:id
 // @access  Private (admin, editor)
-exports.updatePatient = async (req, res) => {
+export const updatePatient = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -201,7 +201,7 @@ exports.updatePatient = async (req, res) => {
 // @desc    Eliminar un paciente
 // @route   DELETE /api/patients/:id
 // @access  Private (admin only)
-exports.deletePatient = async (req, res) => {
+export const deletePatient = async (req, res) => {
   try {
     const { id } = req.params;
 

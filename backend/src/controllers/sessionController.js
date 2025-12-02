@@ -1,10 +1,10 @@
-const { db } = require('../config/firebase');
-const { paginate } = require('../utils/pagination');
+import {  db  } from '../config/firebase.js';
+import {  paginate  } from '../utils/pagination.js';
 
 // @desc    Obtener todas las sesiones
 // @route   GET /api/sessions
 // @access  Private
-exports.getSessions = async (req, res) => {
+export const getSessions = async (req, res) => {
   try {
     const { page = 1, limit = 10, patientId = '', status = '' } = req.query;
 
@@ -59,7 +59,7 @@ exports.getSessions = async (req, res) => {
 // @desc    Obtener una sesión por ID
 // @route   GET /api/sessions/:id
 // @access  Private
-exports.getSession = async (req, res) => {
+export const getSession = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -94,7 +94,7 @@ exports.getSession = async (req, res) => {
 // @desc    Crear una nueva sesión
 // @route   POST /api/sessions
 // @access  Private
-exports.createSession = async (req, res) => {
+export const createSession = async (req, res) => {
   try {
     const sessionData = {
       ...req.body,
@@ -126,7 +126,7 @@ exports.createSession = async (req, res) => {
 // @desc    Actualizar una sesión
 // @route   PUT /api/sessions/:id
 // @access  Private
-exports.updateSession = async (req, res) => {
+export const updateSession = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -169,7 +169,7 @@ exports.updateSession = async (req, res) => {
 // @desc    Eliminar una sesión
 // @route   DELETE /api/sessions/:id
 // @access  Private (admin only)
-exports.deleteSession = async (req, res) => {
+export const deleteSession = async (req, res) => {
   try {
     const { id } = req.params;
 

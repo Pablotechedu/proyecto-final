@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const authController = require('../controllers/authController');
-const { auth } = require('../middlewares/auth.middleware');
+import * as authController from '../controllers/authController.js';
+import {  auth  } from '../middlewares/auth.middleware.js';
 
 /**
  * @route   POST /api/auth/register
@@ -38,4 +38,4 @@ router.put('/profile', auth, authController.updateProfile);
  */
 router.put('/change-password', auth, authController.changePassword);
 
-module.exports = router;
+export default router;

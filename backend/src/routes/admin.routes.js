@@ -1,7 +1,7 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { auth } = require('../middlewares/auth.middleware');
-const { checkAdminOrDirector } = require('../middlewares/role.middleware');
+import {  auth  } from '../middlewares/auth.middleware.js';
+import {  checkAdminOrDirector  } from '../middlewares/role.middleware.js';
 
 // TODO: Implementar controladores de admin (estadísticas, reportes)
 
@@ -13,4 +13,4 @@ router.get('/reports', auth, checkAdminOrDirector, (req, res) => {
   res.json({ success: true, message: 'Endpoint de reportes - Por implementar', data: [] });
 });
 
-module.exports = router;
+export default router;

@@ -8,7 +8,7 @@
  * @param {String} permission - Permiso requerido (isAdmin, isEditor, isTherapist, isDirector)
  * @returns {Function} Middleware function
  */
-exports.checkPermission = (permission) => {
+export const checkPermission = (permission) => {
   return (req, res, next) => {
     // Verificar que el usuario esté autenticado
     if (!req.user) {
@@ -44,7 +44,7 @@ exports.checkPermission = (permission) => {
  * @param {Array<String>} permissions - Lista de permisos (cualquiera es válido)
  * @returns {Function} Middleware function
  */
-exports.checkAnyPermission = (permissions) => {
+export const checkAnyPermission = (permissions) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ 
@@ -80,7 +80,7 @@ exports.checkAnyPermission = (permissions) => {
  * @param {Array<String>} permissions - Lista de permisos (todos son requeridos)
  * @returns {Function} Middleware function
  */
-exports.checkAllPermissions = (permissions) => {
+export const checkAllPermissions = (permissions) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ 
@@ -114,7 +114,7 @@ exports.checkAllPermissions = (permissions) => {
 /**
  * Middleware para verificar si el usuario es administrador
  */
-exports.checkAdmin = (req, res, next) => {
+export const checkAdmin = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ 
       success: false, 
@@ -135,7 +135,7 @@ exports.checkAdmin = (req, res, next) => {
 /**
  * Middleware para verificar si el usuario es director
  */
-exports.checkDirector = (req, res, next) => {
+export const checkDirector = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ 
       success: false, 
@@ -156,7 +156,7 @@ exports.checkDirector = (req, res, next) => {
 /**
  * Middleware para verificar si el usuario es admin o director
  */
-exports.checkAdminOrDirector = (req, res, next) => {
+export const checkAdminOrDirector = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ 
       success: false, 
@@ -182,7 +182,7 @@ exports.checkAdminOrDirector = (req, res, next) => {
  * Los terapeutas solo pueden ver sus propios recursos
  * Los admins y directores pueden ver todos
  */
-exports.checkTherapistAccess = (req, res, next) => {
+export const checkTherapistAccess = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ 
       success: false, 
@@ -223,7 +223,7 @@ exports.checkTherapistAccess = (req, res, next) => {
 /**
  * Middleware para verificar si puede editar (Admin o Editor)
  */
-exports.checkCanEdit = (req, res, next) => {
+export const checkCanEdit = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ 
       success: false, 
@@ -246,7 +246,7 @@ exports.checkCanEdit = (req, res, next) => {
 /**
  * Middleware para verificar si puede eliminar (solo Admin)
  */
-exports.checkCanDelete = (req, res, next) => {
+export const checkCanDelete = (req, res, next) => {
   if (!req.user) {
     return res.status(401).json({ 
       success: false, 
@@ -265,7 +265,7 @@ exports.checkCanDelete = (req, res, next) => {
 };
 
 // Mantener compatibilidad con código antiguo
-exports.checkRole = (allowedRoles) => {
+export const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     console.warn('checkRole está deprecado, usa checkPermission o checkAnyPermission');
     

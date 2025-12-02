@@ -1,10 +1,17 @@
-const express = require('express');
+import express from 'express';
+import { auth } from '../middlewares/auth.middleware.js';
+import { checkRole } from '../middlewares/role.middleware.js';
+import upload from '../middlewares/upload.middleware.js';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 const router = express.Router();
-const { auth } = require('../middlewares/auth.middleware');
-const { checkRole } = require('../middlewares/role.middleware');
-const upload = require('../middlewares/upload.middleware');
-const path = require('path');
-const fs = require('fs');
 
 /**
  * @route   POST /api/upload/image
@@ -165,4 +172,4 @@ router.get('/list', auth, (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

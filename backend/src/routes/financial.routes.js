@@ -1,8 +1,10 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { auth } = require('../middlewares/auth.middleware');
-const { checkAnyPermission } = require('../middlewares/role.middleware');
-const { getFinancialSummary } = require('../controllers/financialController');
+import {  auth  } from '../middlewares/auth.middleware.js';
+import {  checkAnyPermission  } from '../middlewares/role.middleware.js';
+import * as financialController from '../controllers/financialController.js';
+
+const { getFinancialSummary } = financialController;
 
 /**
  * @route   GET /api/financial/summary
@@ -11,4 +13,4 @@ const { getFinancialSummary } = require('../controllers/financialController');
  */
 router.get('/summary', auth, checkAnyPermission(['isAdmin', 'isEditor', 'isDirector']), getFinancialSummary);
 
-module.exports = router;
+export default router;

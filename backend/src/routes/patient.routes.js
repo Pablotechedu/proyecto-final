@@ -1,14 +1,16 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { auth } = require('../middlewares/auth.middleware');
-const { checkRole } = require('../middlewares/role.middleware');
+import {  auth  } from '../middlewares/auth.middleware.js';
+import {  checkRole  } from '../middlewares/role.middleware.js';
+import * as patientController from '../controllers/patientController.js';
+
 const {
   getPatients,
   getPatient,
   createPatient,
   updatePatient,
   deletePatient
-} = require('../controllers/patientController');
+} = patientController;
 
 /**
  * @route   GET /api/patients
@@ -45,4 +47,4 @@ router.put('/:id', auth, checkRole(['admin', 'editor']), updatePatient);
  */
 router.delete('/:id', auth, checkRole(['admin']), deletePatient);
 
-module.exports = router;
+export default router;

@@ -1,6 +1,6 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const { auth } = require('../middlewares/auth.middleware');
+import {  auth  } from '../middlewares/auth.middleware.js';
 
 // TODO: Implementar controladores de eventos (requisito del proyecto)
 
@@ -24,4 +24,4 @@ router.delete('/:id', auth, (req, res) => {
   res.json({ success: true, message: 'Endpoint de eliminar evento - Por implementar' });
 });
 
-module.exports = router;
+export default router;

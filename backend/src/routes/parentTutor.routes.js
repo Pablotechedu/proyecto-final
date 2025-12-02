@@ -1,8 +1,8 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router({ mergeParams: true }); // Para acceder a :patientId
-const { auth } = require('../middlewares/auth.middleware');
-const { checkRole } = require('../middlewares/role.middleware');
-const { db } = require('../config/firebase');
+import {  auth  } from '../middlewares/auth.middleware.js';
+import {  checkRole  } from '../middlewares/role.middleware.js';
+import { db } from '../config/firebase.js';
 
 /**
  * @route   GET /api/patients/:patientId/parents
@@ -146,4 +146,4 @@ router.delete('/:parentId', auth, checkRole(['admin', 'editor']), async (req, re
   }
 });
 
-module.exports = router;
+export default router;
