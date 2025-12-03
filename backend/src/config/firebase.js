@@ -14,9 +14,9 @@ try {
   const serviceAccountData = readFileSync(serviceAccountPath, 'utf8');
   serviceAccount = JSON.parse(serviceAccountData);
 } catch (error) {
-  console.error('❌ Error: No se encontró el archivo serviceAccountKey.json');
-  console.error('📝 Por favor descarga el Service Account Key de Firebase Console');
-  console.error('   y guárdalo como serviceAccountKey.json en la carpeta backend/');
+  console.error('ERROR: No se encontró el archivo serviceAccountKey.json');
+  console.error('Por favor descarga el Service Account Key de Firebase Console');
+  console.error('y guárdalo como serviceAccountKey.json en la carpeta backend/');
   process.exit(1);
 }
 
@@ -34,7 +34,7 @@ db.settings({
   ignoreUndefinedProperties: true
 });
 
-console.log('✅ Firebase Admin SDK inicializado correctamente');
-console.log(`📦 Proyecto: ${process.env.FIREBASE_PROJECT_ID || 'hub-terapias'}`);
+console.log('Firebase Admin SDK inicializado correctamente');
+console.log(`Proyecto: ${process.env.FIREBASE_PROJECT_ID || 'hub-terapias'}`);
 
 export { admin, db, auth };

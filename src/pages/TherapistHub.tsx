@@ -30,6 +30,7 @@ import {
   Session,
   PendingTask,
 } from '../services/sessions';
+import { toDate } from '../utils/dateHelpers';
 import { useAuth } from '../hooks/useAuth';
 
 export default function TherapistHub() {
@@ -253,7 +254,8 @@ export default function TherapistHub() {
                 <Stack spacing={2}>
                   {sessions.map((session, index) => {
                     const duration = calculateDuration(session.startTime, session.endTime);
-                    const isPast = new Date(session.startTime) < new Date();
+                    const sessionDate = toDate(session.startTime);
+                    const isPast = sessionDate ? sessionDate < new Date() : false;
 
                     return (
                       <Box key={session.id}>

@@ -34,7 +34,7 @@ class MockDataGenerator {
    * Limpiar base de datos antes de generar nuevos datos
    */
   async cleanDatabase() {
-    console.log('\n🗑️  Limpiando base de datos antes de generar datos...\n');
+    console.log('\nLimpiando base de datos antes de generar datos...\n');
 
     const collections = [
       'users',
@@ -67,20 +67,20 @@ class MockDataGenerator {
 
         await batch.commit();
         totalDeleted += count;
-        console.log(`   ✅ ${count} documentos eliminados de ${collectionName}`);
+        console.log(`   ${count} documentos eliminados de ${collectionName}`);
       } catch (error) {
-        console.error(`   ❌ Error limpiando ${collectionName}:`, error.message);
+        console.error(`   Error limpiando ${collectionName}:`, error.message);
       }
     }
 
-    console.log(`\n📊 Total de documentos eliminados: ${totalDeleted}\n`);
+    console.log(`\nTotal de documentos eliminados: ${totalDeleted}\n`);
   }
 
   /**
    * Generar usuarios mock
    */
   async generateUsers(count = 10) {
-    console.log('📝 Generando usuarios...');
+    console.log('Generando usuarios...');
     
     const roles = [
       { isAdmin: true, isEditor: false, isTherapist: false, isDirector: true },
@@ -120,7 +120,7 @@ class MockDataGenerator {
     for (const user of predefinedUsers) {
       const docRef = await db.collection('users').add(user);
       this.users.push({ id: docRef.id, ...user });
-      console.log(`✅ Usuario creado: ${user.name} (${user.email})`);
+      console.log(`Usuario creado: ${user.name} (${user.email})`);
     }
 
     // Generar usuarios adicionales
@@ -136,7 +136,7 @@ class MockDataGenerator {
 
       const docRef = await db.collection('users').add(user);
       this.users.push({ id: docRef.id, ...user });
-      console.log(`✅ Usuario creado: ${user.name}`);
+      console.log(`Usuario creado: ${user.name}`);
     }
   }
 
@@ -144,7 +144,7 @@ class MockDataGenerator {
    * Generar pacientes mock
    */
   async generatePatients(count = 50) {
-    console.log('\n📝 Generando pacientes...');
+    console.log('\nGenerando pacientes...');
     
     const diagnoses = [
       'TDAH',
@@ -195,7 +195,7 @@ class MockDataGenerator {
       this.patients.push({ id: docRef.id, ...patient });
       
       if ((i + 1) % 10 === 0) {
-        console.log(`✅ ${i + 1}/${count} pacientes creados...`);
+        console.log(`${i + 1}/${count} pacientes creados...`);
       }
     }
   }
@@ -204,11 +204,11 @@ class MockDataGenerator {
    * Generar sesiones mock
    */
   async generateSessions(count = 200) {
-    console.log('\n📝 Generando sesiones...');
+    console.log('\nGenerando sesiones...');
     
     const therapists = this.users.filter(u => u.permissions.isTherapist);
     if (therapists.length === 0) {
-      console.warn('⚠️  No hay terapeutas, usando todos los usuarios');
+      console.warn('ADVERTENCIA: No hay terapeutas, usando todos los usuarios');
       therapists.push(...this.users);
     }
 
@@ -218,11 +218,17 @@ class MockDataGenerator {
     for (let i = 0; i < count; i++) {
       const patient = faker.helpers.arrayElement(this.patients);
       const therapist = faker.helpers.arrayElement(therapists);
-      const startTime = faker.date.between({ 
+      const startTimeDate = faker.date.between({ 
         from: new Date(2024, 0, 1), 
         to: new Date() 
       });
-      const endTime = new Date(startTime.getTime() + 60 * 60 * 1000); // +1 hora
+      const endTimeDate = new Date(startTimeDate.getTime() + 60 * 60 * 1000); // +1 hora
+
+      // Convertir a Firestore Timestamp
+      const startTime = admin.firestore.Timestamp.fromDate(startTimeDate);
+      const endTime = admin.firestore.Timestamp.fromDate(endTimeDate);
+      const createdAt = admin.firestore.Timestamp.fromDate(startTimeDate);
+      const updatedAt = admin.firestore.Timestamp.fromDate(new Date());
 
       const session = {
         patientId: patient.id,
@@ -232,20 +238,20 @@ class MockDataGenerator {
         therapistName: therapist.name,
         startTime,
         endTime,
-        duration: 1,
-        type: faker.helpers.arrayElement(types),
+        duration: 60,
+        sessionType: faker.helpers.arrayElement(types),
         status: faker.helpers.arrayElement(statuses),
         formCompleted: faker.datatype.boolean(),
         notes: faker.lorem.sentence(),
-        createdAt: startTime,
-        updatedAt: new Date()
+        createdAt,
+        updatedAt
       };
 
       await db.collection('sessions').add(session);
       this.sessions.push(session);
       
       if ((i + 1) % 20 === 0) {
-        console.log(`✅ ${i + 1}/${count} sesiones creadas...`);
+        console.log(`${i + 1}/${count} sesiones creadas...`);
       }
     }
   }
@@ -254,10 +260,16 @@ class MockDataGenerator {
    * Generar pagos mock
    */
   async generatePayments(count = 100) {
-    console.log('\n📝 Generando pagos...');
+    console.log('\nGenerando pagos...');
     
-    const statuses = ['completed', 'completed', 'completed', 'pending']; // 75% completados
+    const statuses = ['Completed', 'Completed', 'Completed', 'Pending']; // 75% completados
     const paymentMethods = ['Transferencia', 'Efectivo', 'Cheque', 'Tarjeta'];
+    const types = ['Terapia', 'Evaluacion', 'Otro'];
+
+    const months = [
+      'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
+      'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'
+    ];
 
     for (let i = 0; i < count; i++) {
       const patient = faker.helpers.arrayElement(this.patients);
@@ -266,16 +278,20 @@ class MockDataGenerator {
         to: new Date() 
       });
 
+      const monthName = months[paymentDate.getMonth()];
+      const year = paymentDate.getFullYear();
+
       const payment = {
         patientId: patient.id,
         patientName: patient.name,
         patientCode: patient.patientCode,
         amount: faker.helpers.arrayElement([600, 800, 1000, 1200, 1500, 2000]),
         paymentDate,
-        monthCovered: `${paymentDate.getFullYear()}-${String(paymentDate.getMonth() + 1).padStart(2, '0')}`,
+        monthCovered: `${monthName} ${year}`,
         paymentMethod: faker.helpers.arrayElement(paymentMethods),
+        type: faker.helpers.arrayElement(types),
         status: faker.helpers.arrayElement(statuses),
-        receiptUrl: faker.datatype.boolean() ? faker.internet.url() : null,
+        driveLink: faker.datatype.boolean() ? faker.internet.url() : null,
         notes: faker.lorem.sentence(),
         createdAt: paymentDate,
         updatedAt: new Date()
@@ -284,7 +300,7 @@ class MockDataGenerator {
       await db.collection('payments').add(payment);
       
       if ((i + 1) % 10 === 0) {
-        console.log(`✅ ${i + 1}/${count} pagos creados...`);
+        console.log(`${i + 1}/${count} pagos creados...`);
       }
     }
   }
@@ -293,7 +309,7 @@ class MockDataGenerator {
    * Generar padres/tutores mock
    */
   async generateParentTutors() {
-    console.log('\n📝 Generando padres/tutores...');
+    console.log('\nGenerando padres/tutores...');
     
     for (const patient of this.patients) {
       const parentTutor = {
@@ -310,15 +326,15 @@ class MockDataGenerator {
 
       await db.collection('parentTutors').add(parentTutor);
     }
-    console.log(`✅ ${this.patients.length} padres/tutores creados`);
+    console.log(`${this.patients.length} padres/tutores creados`);
   }
 
   /**
    * Ejecutar generación completa
    */
   async generateAll() {
-    console.log('🚀 Iniciando generación de mock data...\n');
-    console.log('⚠️  IMPORTANTE: Asegúrate de estar usando la base de datos de DESARROLLO\n');
+    console.log('Iniciando generación de mock data...\n');
+    console.log('IMPORTANTE: Asegúrate de estar usando la base de datos de DESARROLLO\n');
 
     try {
       // Limpiar base de datos primero
@@ -330,9 +346,9 @@ class MockDataGenerator {
       await this.generatePayments(100);
       await this.generateParentTutors();
 
-      console.log('\n✅ Mock data generado exitosamente!');
+      console.log('\nMock data generado exitosamente!');
       console.log(`
-📊 Resumen:
+Resumen:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 - Usuarios: ${this.users.length}
 - Pacientes: ${this.patients.length}
@@ -341,7 +357,7 @@ class MockDataGenerator {
 - Padres/Tutores: ${this.patients.length}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔐 Credenciales de prueba:
+Credenciales de prueba:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Admin:     admin@test.com / admin123
 Editor:    editor@test.com / editor123
@@ -349,7 +365,7 @@ Terapeuta: therapist@test.com / therapist123
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       `);
     } catch (error) {
-      console.error('❌ Error generando mock data:', error);
+      console.error('Error generando mock data:', error);
       throw error;
     }
   }
@@ -359,10 +375,10 @@ Terapeuta: therapist@test.com / therapist123
 const generator = new MockDataGenerator();
 generator.generateAll()
   .then(() => {
-    console.log('\n✅ Proceso completado. Puedes cerrar esta ventana.');
+    console.log('\nProceso completado. Puedes cerrar esta ventana.');
     process.exit(0);
   })
   .catch(err => {
-    console.error('\n❌ Error:', err);
+    console.error('\nError:', err);
     process.exit(1);
   });

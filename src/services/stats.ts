@@ -36,9 +36,16 @@ export interface TopPatient {
 }
 
 // Obtener estadísticas del dashboard
-export const getDashboardStats = async (): Promise<DashboardStats> => {
+export const getDashboardStats = async (month?: number, year?: number): Promise<DashboardStats> => {
   try {
-    const response = await api.get('/stats/dashboard');
+    const params = new URLSearchParams();
+    if (month) params.append('month', month.toString());
+    if (year) params.append('year', year.toString());
+    
+    const queryString = params.toString();
+    const url = queryString ? `/stats/dashboard?${queryString}` : '/stats/dashboard';
+    
+    const response = await api.get(url);
     return response.data.data;
   } catch (error) {
     throw new Error(handleApiError(error));

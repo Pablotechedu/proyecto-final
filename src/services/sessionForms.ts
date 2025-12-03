@@ -1,16 +1,4 @@
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  addDoc, 
-  updateDoc,
-  query,
-  where,
-  getDocs,
-  orderBy,
-  limit as firestoreLimit,
-} from 'firebase/firestore';
-import { db } from './firebase';
+import api from './api';
 import { SessionFormData } from '../types';
 
 // Crear nueva sesión con formulario
@@ -19,24 +7,22 @@ export const createSessionForm = async (
   formData: SessionFormData
 ): Promise<void> => {
   try {
-    const sessionRef = doc(db, 'sessions', sessionId);
-    
     // Limpiar datos undefined
-    const cleanData: any = {
-      formCompleted: true,
-      formData: {},
-      updatedAt: new Date().toISOString(),
-    };
+    const cleanFormData: any = {};
     
     // Solo agregar campos con valor
     Object.keys(formData).forEach(key => {
       const value = (formData as any)[key];
       if (value !== undefined && value !== null && value !== '') {
-        cleanData.formData[key] = value;
+        cleanFormData[key] = value;
       }
     });
     
-    await updateDoc(sessionRef, cleanData);
+    // Actualizar sesión a través de la API
+    await api.put(`/sessions/${sessionId}`, {
+      formCompleted: true,
+      formData: cleanFormData
+    });
   } catch (error) {
     console.error('Error creating session form:', error);
     throw error;
@@ -46,11 +32,10 @@ export const createSessionForm = async (
 // Obtener formulario de sesión
 export const getSessionForm = async (sessionId: string): Promise<SessionFormData | null> => {
   try {
-    const sessionRef = doc(db, 'sessions', sessionId);
-    const snapshot = await getDoc(sessionRef);
+    const response = await api.get(`/sessions/${sessionId}`);
     
-    if (snapshot.exists() && snapshot.data().formData) {
-      return snapshot.data().formData as SessionFormData;
+    if (response.data.success && response.data.data?.formData) {
+      return response.data.data.formData as SessionFormData;
     }
     return null;
   } catch (error) {

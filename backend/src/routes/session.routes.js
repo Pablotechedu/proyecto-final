@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import {  auth  } from '../middlewares/auth.middleware.js';
-import {  checkRole  } from '../middlewares/role.middleware.js';
+import {  checkAdmin  } from '../middlewares/role.middleware.js';
 import * as sessionController from '../controllers/sessionController.js';
 
 const {
@@ -45,6 +45,6 @@ router.put('/:id', auth, updateSession);
  * @desc    Eliminar sesión
  * @access  Private (admin)
  */
-router.delete('/:id', auth, checkRole(['admin']), deleteSession);
+router.delete('/:id', auth, checkAdmin, deleteSession);
 
 export default router;

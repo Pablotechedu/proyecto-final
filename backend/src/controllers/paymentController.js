@@ -116,8 +116,25 @@ export const getPayment = async (req, res) => {
 // @access  Private
 export const createPayment = async (req, res) => {
   try {
+    // Convertir fecha ISO string a Date object
+    // Si viene solo la fecha (YYYY-MM-DD), agregarle mediodía para evitar problemas de zona horaria
+    let paymentDate;
+    if (req.body.paymentDate) {
+      const dateStr = req.body.paymentDate;
+      // Si es solo fecha (YYYY-MM-DD), agregar hora de mediodía
+      if (dateStr.length === 10 && !dateStr.includes('T')) {
+        paymentDate = new Date(dateStr + 'T12:00:00.000Z');
+      } else {
+        paymentDate = new Date(dateStr);
+      }
+    } else {
+      paymentDate = new Date();
+    }
+    
     const paymentData = {
       ...req.body,
+      paymentDate,
+      status: req.body.status || 'Completed', // Default status to 'Completed'
       createdAt: new Date(),
       updatedAt: new Date(),
       createdBy: req.user.id
@@ -159,21 +176,46 @@ export const updatePayment = async (req, res) => {
       });
     }
 
+    // Preparar datos de actualización
     const updateData = {
       ...req.body,
       updatedAt: new Date(),
       updatedBy: req.user.id
     };
 
+    // Convertir fecha ISO string a Date object si existe
+    if (req.body.paymentDate) {
+      const dateStr = req.body.paymentDate;
+      // Si es solo fecha (YYYY-MM-DD), agregar hora de mediodía
+      if (dateStr.length === 10 && !dateStr.includes('T')) {
+        updateData.paymentDate = new Date(dateStr + 'T12:00:00.000Z');
+      } else {
+        updateData.paymentDate = new Date(dateStr);
+      }
+    }
+
+    // Asegurar que status existe (mantener el actual si no se proporciona)
+    if (!updateData.status) {
+      const currentData = doc.data();
+      updateData.status = currentData.status || 'Completed';
+    }
+
     await db.collection('payments').doc(id).update(updateData);
+
+    // Obtener datos actualizados
+    const updatedDoc = await db.collection('payments').doc(id).get();
+    const updatedData = updatedDoc.data();
 
     res.json({
       success: true,
       message: 'Pago actualizado exitosamente',
       data: {
         id,
-        ...doc.data(),
-        ...updateData
+        ...updatedData,
+        // Convertir Timestamps de Firebase a formato ISO string
+        paymentDate: updatedData.paymentDate?.toDate?.()?.toISOString() || updatedData.paymentDate,
+        createdAt: updatedData.createdAt?.toDate?.()?.toISOString() || updatedData.createdAt,
+        updatedAt: updatedData.updatedAt?.toDate?.()?.toISOString() || updatedData.updatedAt
       }
     });
   } catch (error) {

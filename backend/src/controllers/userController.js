@@ -140,7 +140,7 @@ export const createUser = async (req, res) => {
       });
     }
 
-    // Verificar si el usuario ya existe
+    // Verificar si el usuario ya existe en Firestore
     const existingUser = await db.collection('users').where('email', '==', email).get();
     if (!existingUser.empty) {
       return res.status(400).json({
@@ -149,12 +149,57 @@ export const createUser = async (req, res) => {
       });
     }
 
+    // Verificar si el usuario existe en Firebase Auth pero no en Firestore (usuario huérfano)
+    // Esto puede ocurrir cuando se borran datos manualmente o se ejecutan scripts de limpieza
+    try {
+      const existingAuthUser = await auth.getUserByEmail(email);
+      if (existingAuthUser) {
+        // Usuario existe en Auth pero no en Firestore - eliminar para permitir recreación
+        console.log(`Eliminando usuario huérfano de Auth: ${email}`);
+        await auth.deleteUser(existingAuthUser.uid);
+      }
+    } catch (error) {
+      // auth.getUserByEmail lanza error si el usuario no existe, lo cual es el caso normal
+      if (error.code !== 'auth/user-not-found') {
+        throw error;
+      }
+    }
+
     // Crear usuario en Firebase Auth
-    const userRecord = await auth.createUser({
-      email,
-      password,
-      displayName: name
-    });
+    let userRecord;
+    try {
+      userRecord = await auth.createUser({
+        email,
+        password,
+        displayName: name
+      });
+    } catch (authError) {
+      // Manejar errores específicos de Firebase Auth
+      console.error('Error creating user in Firebase Auth:', authError);
+      
+      // Error de permisos de la cuenta de servicio
+      if (authError.code === 'auth/insufficient-permissions' || 
+          authError.message?.includes('required permission') ||
+          authError.message?.includes('PERMISSION_DENIED')) {
+        return res.status(403).json({
+          success: false,
+          message: 'Error de configuración: La cuenta de servicio no tiene permisos suficientes',
+          error: authError.message,
+          solution: 'Por favor, ve a Google Cloud Console > IAM & Admin > IAM y asigna el rol "Firebase Authentication Admin" a la cuenta de servicio. También habilita la API "Identity Toolkit API" en APIs & Services > Library.'
+        });
+      }
+      
+      // Email ya existe en Auth
+      if (authError.code === 'auth/email-already-exists') {
+        return res.status(400).json({
+          success: false,
+          message: 'El email ya está registrado en Firebase Auth'
+        });
+      }
+      
+      // Otros errores de Auth
+      throw authError;
+    }
 
     // Encriptar password para Firestore
     const hashedPassword = await bcrypt.hashPassword(password);
@@ -191,6 +236,18 @@ export const createUser = async (req, res) => {
     });
   } catch (error) {
     console.error('Error creating user:', error);
+    
+    // Si llegamos aquí y el error es de permisos, capturarlo
+    if (error.message?.includes('required permission') || 
+        error.message?.includes('PERMISSION_DENIED')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Error de configuración: Permisos insuficientes en Google Cloud',
+        error: error.message,
+        solution: 'Habilita la API "Identity Toolkit API" y asigna roles necesarios a la cuenta de servicio en Google Cloud Console'
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Error al crear usuario',

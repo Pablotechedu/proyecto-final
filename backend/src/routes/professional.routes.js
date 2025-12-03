@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router({ mergeParams: true }); // Para acceder a :patientId
 import {  auth  } from '../middlewares/auth.middleware.js';
-import {  checkRole  } from '../middlewares/role.middleware.js';
+import {  checkCanEdit  } from '../middlewares/role.middleware.js';
 import { db } from '../config/firebase.js';
 
 /**
@@ -43,7 +43,7 @@ router.get('/', auth, async (req, res) => {
  * @desc    Agregar profesional a un paciente
  * @access  Private
  */
-router.post('/', auth, checkRole(['admin', 'editor']), async (req, res) => {
+router.post('/', auth, checkCanEdit, async (req, res) => {
   try {
     const { patientId } = req.params;
 
@@ -82,7 +82,7 @@ router.post('/', auth, checkRole(['admin', 'editor']), async (req, res) => {
  * @desc    Actualizar profesional
  * @access  Private
  */
-router.put('/:professionalId', auth, checkRole(['admin', 'editor']), async (req, res) => {
+router.put('/:professionalId', auth, checkCanEdit, async (req, res) => {
   try {
     const { patientId, professionalId } = req.params;
 
@@ -121,7 +121,7 @@ router.put('/:professionalId', auth, checkRole(['admin', 'editor']), async (req,
  * @desc    Eliminar profesional
  * @access  Private
  */
-router.delete('/:professionalId', auth, checkRole(['admin', 'editor']), async (req, res) => {
+router.delete('/:professionalId', auth, checkCanEdit, async (req, res) => {
   try {
     const { patientId, professionalId } = req.params;
 

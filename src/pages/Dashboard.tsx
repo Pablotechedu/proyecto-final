@@ -18,6 +18,10 @@ import {
   Paper,
   IconButton,
   Grid,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   TrendingUp as TrendingUpIcon,
@@ -108,6 +112,11 @@ export default function Dashboard() {
   const [summary, setSummary] = useState<FinancialSummary | null>(null);
   const [recentPayments, setRecentPayments] = useState<Payment[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  
+  // Estado para el selector de mes/año
+  const currentDate = new Date();
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth() + 1); // 1-12
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
 
   const isAdminOrEditor = user?.permissions?.isAdmin || user?.permissions?.isEditor || user?.permissions?.isDirector;
 
@@ -118,7 +127,7 @@ export default function Dashboard() {
     } else {
       setLoading(false);
     }
-  }, [isAdminOrEditor]);
+  }, [isAdminOrEditor, selectedMonth, selectedYear]);
 
   const loadDashboardData = async () => {
     try {
@@ -126,9 +135,9 @@ export default function Dashboard() {
       setError(null);
 
       const [summaryData, paymentsData, statsData] = await Promise.all([
-        getFinancialSummary(),
+        getFinancialSummary(selectedMonth, selectedYear),
         getRecentPayments(5),
-        getDashboardStats(),
+        getDashboardStats(selectedMonth, selectedYear),
       ]);
 
       setSummary(summaryData);
@@ -183,12 +192,54 @@ export default function Dashboard() {
     <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
       {/* Header */}
       <Box mb={4}>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Dashboard General
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Resumen del mes de {new Date().toLocaleString('es-GT', { month: 'long', year: 'numeric' })}
-        </Typography>
+        <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2}>
+          <Box>
+            <Typography variant="h4" component="h1" gutterBottom>
+              Dashboard General
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Resumen del mes seleccionado
+            </Typography>
+          </Box>
+          
+          {/* Selector de Mes y Año */}
+          <Stack direction="row" spacing={2}>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel>Mes</InputLabel>
+              <Select
+                value={selectedMonth}
+                label="Mes"
+                onChange={(e) => setSelectedMonth(Number(e.target.value))}
+              >
+                <MenuItem value={1}>Enero</MenuItem>
+                <MenuItem value={2}>Febrero</MenuItem>
+                <MenuItem value={3}>Marzo</MenuItem>
+                <MenuItem value={4}>Abril</MenuItem>
+                <MenuItem value={5}>Mayo</MenuItem>
+                <MenuItem value={6}>Junio</MenuItem>
+                <MenuItem value={7}>Julio</MenuItem>
+                <MenuItem value={8}>Agosto</MenuItem>
+                <MenuItem value={9}>Septiembre</MenuItem>
+                <MenuItem value={10}>Octubre</MenuItem>
+                <MenuItem value={11}>Noviembre</MenuItem>
+                <MenuItem value={12}>Diciembre</MenuItem>
+              </Select>
+            </FormControl>
+            
+            <FormControl size="small" sx={{ minWidth: 100 }}>
+              <InputLabel>Año</InputLabel>
+              <Select
+                value={selectedYear}
+                label="Año"
+                onChange={(e) => setSelectedYear(Number(e.target.value))}
+              >
+                <MenuItem value={2024}>2024</MenuItem>
+                <MenuItem value={2025}>2025</MenuItem>
+                <MenuItem value={2026}>2026</MenuItem>
+              </Select>
+            </FormControl>
+          </Stack>
+        </Stack>
       </Box>
 
       {/* Estadísticas Generales */}

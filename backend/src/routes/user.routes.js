@@ -13,6 +13,13 @@ const {
 } = userController;
 
 /**
+ * @route   GET /api/users/therapists
+ * @desc    Obtener todos los terapeutas (para asignación de pacientes)
+ * @access  Private (cualquier usuario autenticado)
+ */
+router.get('/therapists', auth, getUsers);
+
+/**
  * @route   GET /api/users
  * @desc    Obtener todos los usuarios
  * @access  Private (admin)

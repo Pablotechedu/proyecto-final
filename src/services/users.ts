@@ -146,9 +146,10 @@ export const getRoleColor = (role: string): 'error' | 'warning' | 'info' | 'defa
 // Obtener todos los terapeutas (sin paginación)
 export const getTherapists = async (): Promise<User[]> => {
   try {
-    const response = await getUsers(1, 1000); // Obtener hasta 1000 usuarios
-    // Filtrar solo terapeutas
-    return response.data.filter(user => user.permissions.isTherapist);
+    const response = await api.get('/users/therapists?limit=1000');
+    // Filtrar solo terapeutas del resultado
+    const users = response.data.data || [];
+    return users.filter((user: User) => user.permissions.isTherapist);
   } catch (error) {
     throw new Error(handleApiError(error));
   }

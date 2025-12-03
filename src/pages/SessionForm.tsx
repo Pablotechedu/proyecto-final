@@ -27,6 +27,7 @@ import {
   getAvailableObjectives,
 } from '../services/sessionForms';
 import { getSessionById } from '../services/sessions';
+import { formatDateShort } from '../utils/dateHelpers';
 
 // Importar secciones del formulario
 import GeneralInfoSection from '../components/sessionForm/GeneralInfoSection';
@@ -126,13 +127,14 @@ export default function SessionForm() {
       setError(null);
 
       // Cargar información de la sesión usando la API
-      const session = await getSessionById(sessionId);
+      const response = await getSessionById(sessionId);
       
-      if (!session) {
+      if (!response || !response.data) {
         setError('Sesión no encontrada');
         return;
       }
 
+      const session = response.data;
       setSessionInfo(session);
 
       // Cargar formulario si ya existe
@@ -281,7 +283,7 @@ export default function SessionForm() {
         <Stack direction="row" spacing={1} mb={2} alignItems="center">
           <Chip label={sessionInfo.patientName} color="primary" />
           <Chip 
-            label={new Date(sessionInfo.startTime).toLocaleDateString('es-GT')} 
+            label={formatDateShort(sessionInfo.startTime)} 
             variant="outlined" 
           />
           {/* Indicador de guardado automático */}

@@ -1,21 +1,20 @@
 import {  db  } from '../config/firebase.js';
 
 /**
- * Obtener resumen financiero del mes actual
- * GET /api/financial/summary
+ * Obtener resumen financiero del mes actual o especificado
+ * GET /api/financial/summary?month=12&year=2025
  */
 export const getFinancialSummary = async (req, res) => {
   try {
+    // Obtener mes y año de los query params, o usar el actual
+    const { month, year } = req.query;
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // 0-indexed
-    const monthKey = `${currentYear}-${String(currentMonth).padStart(2, '0')}`;
+    const selectedYear = year ? parseInt(year) : now.getFullYear();
+    const selectedMonth = month ? parseInt(month) - 1 : now.getMonth(); // 0-11
     
-    // Obtener todos los pagos del mes actual
+    // Obtener todos los pagos
     const paymentsRef = db.collection('payments');
-    const paymentsSnapshot = await paymentsRef
-      .where('monthCovered', '==', monthKey)
-      .get();
+    const paymentsSnapshot = await paymentsRef.get();
     
     let totalCollected = 0;
     const incomeByType = {
@@ -26,17 +25,29 @@ export const getFinancialSummary = async (req, res) => {
     
     paymentsSnapshot.forEach(doc => {
       const payment = doc.data();
-      const amount = payment.amount || 0;
-      totalCollected += amount;
       
-      // Clasificar por tipo
-      const type = (payment.type || 'Otro').toLowerCase();
-      if (type === 'terapia') {
-        incomeByType.terapia += amount;
-      } else if (type === 'evaluacion') {
-        incomeByType.evaluacion += amount;
-      } else {
-        incomeByType.otro += amount;
+      // Filtrar por fecha y estado
+      const paymentDate = payment.paymentDate?.toDate?.() || new Date(payment.paymentDate);
+      const paymentMonth = paymentDate.getUTCMonth();
+      const paymentYear = paymentDate.getUTCFullYear();
+      
+      // Solo contar pagos completados del mes seleccionado
+      if (paymentYear === selectedYear && 
+          paymentMonth === selectedMonth &&
+          payment.status === 'Completed') {
+        
+        const amount = payment.amount || 0;
+        totalCollected += amount;
+        
+        // Clasificar por tipo
+        const type = (payment.type || 'Otro').toLowerCase();
+        if (type === 'terapia') {
+          incomeByType.terapia += amount;
+        } else if (type === 'evaluacion') {
+          incomeByType.evaluacion += amount;
+        } else {
+          incomeByType.otro += amount;
+        }
       }
     });
     

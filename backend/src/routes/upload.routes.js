@@ -1,6 +1,6 @@
 import express from 'express';
 import { auth } from '../middlewares/auth.middleware.js';
-import { checkRole } from '../middlewares/role.middleware.js';
+import { checkCanEdit, checkAdmin } from '../middlewares/role.middleware.js';
 import upload from '../middlewares/upload.middleware.js';
 import path from 'path';
 import fs from 'fs';
@@ -18,7 +18,7 @@ const router = express.Router();
  * @desc    Subir una imagen
  * @access  Private (admin, editor)
  */
-router.post('/image', auth, checkRole(['admin', 'editor']), upload.single('image'), (req, res) => {
+router.post('/image', auth, checkCanEdit, upload.single('image'), (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -56,7 +56,7 @@ router.post('/image', auth, checkRole(['admin', 'editor']), upload.single('image
  * @desc    Subir múltiples imágenes
  * @access  Private (admin, editor)
  */
-router.post('/images', auth, checkRole(['admin', 'editor']), upload.array('images', 5), (req, res) => {
+router.post('/images', auth, checkCanEdit, upload.array('images', 5), (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -94,7 +94,7 @@ router.post('/images', auth, checkRole(['admin', 'editor']), upload.array('image
  * @desc    Eliminar una imagen
  * @access  Private (admin)
  */
-router.delete('/:filename', auth, checkRole(['admin']), (req, res) => {
+router.delete('/:filename', auth, checkAdmin, (req, res) => {
   try {
     const { filename } = req.params;
     const filePath = path.join(__dirname, '../../uploads', filename);

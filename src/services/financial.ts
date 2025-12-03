@@ -86,9 +86,16 @@ export const getCurrentMonthExpenses = async (): Promise<Expense[]> => {
 };
 
 // Obtener el resumen financiero desde el backend
-export const getFinancialSummary = async (): Promise<FinancialSummary> => {
+export const getFinancialSummary = async (month?: number, year?: number): Promise<FinancialSummary> => {
   try {
-    const response = await api.get("/financial/summary");
+    const params = new URLSearchParams();
+    if (month) params.append('month', month.toString());
+    if (year) params.append('year', year.toString());
+    
+    const queryString = params.toString();
+    const url = queryString ? `/financial/summary?${queryString}` : '/financial/summary';
+    
+    const response = await api.get(url);
     return response.data.data;
   } catch (error) {
     console.error("Error fetching financial summary:", error);

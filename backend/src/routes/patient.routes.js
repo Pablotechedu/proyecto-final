@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import {  auth  } from '../middlewares/auth.middleware.js';
-import {  checkRole  } from '../middlewares/role.middleware.js';
+import {  checkCanEdit, checkAdmin  } from '../middlewares/role.middleware.js';
 import * as patientController from '../controllers/patientController.js';
 
 const {
@@ -31,20 +31,20 @@ router.get('/:id', auth, getPatient);
  * @desc    Crear nuevo paciente
  * @access  Private (admin, editor)
  */
-router.post('/', auth, checkRole(['admin', 'editor']), createPatient);
+router.post('/', auth, checkCanEdit, createPatient);
 
 /**
  * @route   PUT /api/patients/:id
  * @desc    Actualizar paciente
  * @access  Private (admin, editor)
  */
-router.put('/:id', auth, checkRole(['admin', 'editor']), updatePatient);
+router.put('/:id', auth, checkCanEdit, updatePatient);
 
 /**
  * @route   DELETE /api/patients/:id
  * @desc    Eliminar paciente
  * @access  Private (admin)
  */
-router.delete('/:id', auth, checkRole(['admin']), deletePatient);
+router.delete('/:id', auth, checkAdmin, deletePatient);
 
 export default router;

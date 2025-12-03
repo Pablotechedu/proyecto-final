@@ -38,6 +38,7 @@ import {
 import { getPatientPayments, Payment, formatCurrency } from '../services/payments';
 import { getPatientSessions, Session, formatTime } from '../services/sessions';
 import { useAuth } from '../hooks/useAuth';
+import { toDate, formatDate, formatDateShort } from '../utils/dateHelpers';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -77,6 +78,9 @@ export default function PatientDetail() {
   const isTherapist = user?.role === 'therapist' && !user?.isDirector;
   const backButtonText = isTherapist ? 'Volver a Mi Hub' : 'Volver a Pacientes';
   const backButtonPath = isTherapist ? '/hub' : '/patients';
+  
+  // Determinar si el usuario puede ver información financiera
+  const canViewFinancial = user?.permissions?.isAdmin || user?.permissions?.isEditor || user?.permissions?.isDirector;
 
   useEffect(() => {
     if (id) {
@@ -122,8 +126,13 @@ export default function PatientDetail() {
     const totalPaid = payments.reduce((sum, payment) => sum + (payment.amount || 0), 0);
     
     // Calcular cuántos meses han pasado desde el inicio del tratamiento
-    const startDate = new Date(patient.startDate);
+    const startDate = toDate(patient.startDate);
     const today = new Date();
+    
+    if (!startDate) {
+      return { totalPending: 0, monthlyFee, monthsElapsed: 0, totalExpected: 0, totalPaid };
+    }
+    
     const monthsElapsed = (today.getFullYear() - startDate.getFullYear()) * 12 + 
                           (today.getMonth() - startDate.getMonth()) + 1;
     
@@ -224,7 +233,7 @@ export default function PatientDetail() {
                 {calculateAge(patient.birthDate)} años
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                Nacimiento: {new Date(patient.birthDate).toLocaleDateString('es-GT')}
+                Nacimiento: {formatDateShort(patient.birthDate)}
               </Typography>
             </Box>
 
@@ -250,7 +259,7 @@ export default function PatientDetail() {
               </Stack>
               <Typography variant="body1">{patient.diagnosis}</Typography>
               <Typography variant="caption" color="text.secondary">
-                Inicio: {new Date(patient.startDate).toLocaleDateString('es-GT')}
+                Inicio: {formatDateShort(patient.startDate)}
               </Typography>
             </Box>
           </Stack>
@@ -271,7 +280,7 @@ export default function PatientDetail() {
           <Tab label="Padres y Tutores" />
           <Tab label="Profesionales Relacionados" />
           <Tab label="Información de Contacto" />
-          <Tab label="Pagos" />
+          {canViewFinancial && <Tab label="Pagos" />}
         </Tabs>
 
         {/* Tab 1: Historial Clínico */}
@@ -288,14 +297,14 @@ export default function PatientDetail() {
             <Stack spacing={2}>
               {sessions
                 .sort((a, b) => {
-                  const dateA = a.startTime?.toDate ? a.startTime.toDate() : new Date(a.startTime);
-                  const dateB = b.startTime?.toDate ? b.startTime.toDate() : new Date(b.startTime);
+                  const dateA = toDate(a.startTime);
+                  const dateB = toDate(b.startTime);
+                  if (!dateA || !dateB) return 0;
                   return dateB.getTime() - dateA.getTime();
                 })
                 .map((session) => {
-                  const sessionDate = session.startTime?.toDate 
-                    ? session.startTime.toDate() 
-                    : new Date(session.startTime);
+                  const sessionDate = toDate(session.startTime);
+                  if (!sessionDate) return null;
                   
                   return (
                     <Card key={session.id} variant="outlined">
@@ -584,8 +593,9 @@ export default function PatientDetail() {
           </Stack>
         </TabPanel>
 
-        {/* Tab 5: Pagos */}
-        <TabPanel value={currentTab} index={4}>
+        {/* Tab 5: Pagos - Solo visible para admin/editor/director */}
+        {canViewFinancial && (
+          <TabPanel value={currentTab} index={4}>
           <Stack direction="row" justifyContent="space-between" alignItems="center" mb={2}>
             <Typography variant="h6">
               Información Financiera
@@ -683,14 +693,14 @@ export default function PatientDetail() {
             <Stack spacing={2}>
               {payments
                 .sort((a, b) => {
-                  const dateA = a.paymentDate?.toDate ? a.paymentDate.toDate() : new Date(a.paymentDate);
-                  const dateB = b.paymentDate?.toDate ? b.paymentDate.toDate() : new Date(b.paymentDate);
+                  const dateA = toDate(a.paymentDate);
+                  const dateB = toDate(b.paymentDate);
+                  if (!dateA || !dateB) return 0;
                   return dateB.getTime() - dateA.getTime();
                 })
                 .map((payment) => {
-                  const paymentDate = payment.paymentDate?.toDate 
-                    ? payment.paymentDate.toDate() 
-                    : new Date(payment.paymentDate);
+                  const paymentDate = toDate(payment.paymentDate);
+                  if (!paymentDate) return null;
                   
                   return (
                     <Card key={payment.id} variant="outlined">
@@ -744,6 +754,7 @@ export default function PatientDetail() {
             </Stack>
           )}
         </TabPanel>
+        )}
       </Card>
     </Container>
   );

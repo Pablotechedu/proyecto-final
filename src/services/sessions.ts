@@ -128,46 +128,46 @@ export const getAllSessions = async (): Promise<Session[]> => {
   }
 };
 
+// Import date helpers
+import { 
+  toDate, 
+  formatTime as formatTimeHelper, 
+  calculateDuration as calculateDurationHelper,
+  formatDateShort,
+  isToday as isTodayHelper,
+  startOfDay,
+  endOfDay
+} from '../utils/dateHelpers';
+
 // Helper function para calcular duración de sesión
 export const calculateDuration = (startTime: any, endTime: any): number => {
-  if (!startTime || !endTime) return 0;
-  
-  const start = startTime.toDate ? startTime.toDate() : new Date(startTime);
-  const end = endTime.toDate ? endTime.toDate() : new Date(endTime);
-  
-  const diffMs = end.getTime() - start.getTime();
-  const diffMins = Math.round(diffMs / 60000);
-  
-  return diffMins;
+  return calculateDurationHelper(startTime, endTime);
 };
 
 // Helper function para formatear hora
 export const formatTime = (timestamp: any): string => {
-  if (!timestamp) return '';
-  
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  
-  return date.toLocaleTimeString('es-GT', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true
-  });
+  return formatTimeHelper(timestamp);
+};
+
+// Helper function para formatear fecha corta
+export const formatDate = (timestamp: any): string => {
+  return formatDateShort(timestamp);
 };
 
 // Obtener sesiones de hoy para un terapeuta
 export const getTodaySessions = async (therapistId: string): Promise<Session[]> => {
   try {
     const response = await getAllSessions();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const today = startOfDay();
+    const tomorrow = endOfDay();
 
     return response.filter(session => {
       if (session.therapistId !== therapistId) return false;
       
-      const sessionDate = session.startTime.toDate ? session.startTime.toDate() : new Date(session.startTime);
-      return sessionDate >= today && sessionDate < tomorrow;
+      const sessionDate = toDate(session.startTime);
+      if (!sessionDate) return false;
+      
+      return sessionDate >= today && sessionDate <= tomorrow;
     });
   } catch (error) {
     console.error('Error getting today sessions:', error);
@@ -186,10 +186,12 @@ export const getPendingTasks = async (therapistId: string): Promise<PendingTask[
       
       // Tarea: Sesión completada sin formulario
       if (session.status === 'Completed' && !session.formCompleted) {
+        const dateStr = formatDateShort(session.startTime);
+
         tasks.push({
           id: `form-${session.id}`,
           title: 'Completar formulario de sesión',
-          description: `Sesión del ${new Date(session.startTime).toLocaleDateString('es-GT')}`,
+          description: `Sesión del ${dateStr}`,
           patientName: session.patientName || 'Paciente',
           patientCode: session.patientCode || '',
           sessionId: session.id,

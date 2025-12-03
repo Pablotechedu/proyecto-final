@@ -74,13 +74,17 @@ export default function PaymentForm() {
   const loadPayment = async (id: string) => {
     try {
       setLoading(true);
-      const payment = await getPaymentById(id);
-      if (payment) {
+      const response = await getPaymentById(id);
+      
+      // Manejar la estructura de respuesta del API: { success: true, data: Payment }
+      if (response && response.data) {
+        const payment = response.data;
+        
         setFormData({
           patientCode: payment.patientCode,
           patientName: payment.patientName,
           amount: payment.amount.toString(),
-          paymentDate: payment.paymentDate,
+          paymentDate: payment.paymentDate.split('T')[0], // Extraer solo la fecha
           paymentMethod: payment.paymentMethod,
           monthCovered: payment.monthCovered,
           type: payment.type,
@@ -109,7 +113,7 @@ export default function PaymentForm() {
     if (newValue) {
       setFormData(prev => ({
         ...prev,
-        patientCode: newValue.patientCode,
+        patientCode: newValue.patientCode || '',
         patientName: `${newValue.firstName} ${newValue.lastName}`,
       }));
     } else {

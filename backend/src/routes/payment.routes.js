@@ -1,7 +1,7 @@
 import express from 'express';
 const router = express.Router();
 import {  auth  } from '../middlewares/auth.middleware.js';
-import {  checkRole  } from '../middlewares/role.middleware.js';
+import {  checkAdmin  } from '../middlewares/role.middleware.js';
 import * as paymentController from '../controllers/paymentController.js';
 
 const {
@@ -45,6 +45,6 @@ router.put('/:id', auth, updatePayment);
  * @desc    Eliminar pago
  * @access  Private (admin)
  */
-router.delete('/:id', auth, checkRole(['admin']), deletePayment);
+router.delete('/:id', auth, checkAdmin, deletePayment);
 
 export default router;

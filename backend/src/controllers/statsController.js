@@ -7,6 +7,12 @@ import {  db  } from '../config/firebase.js';
  */
 export const getDashboardStats = async (req, res) => {
   try {
+    // Obtener mes y año de los query params, o usar el actual
+    const { month, year } = req.query;
+    const now = new Date();
+    const selectedYear = year ? parseInt(year) : now.getFullYear();
+    const selectedMonth = month ? parseInt(month) - 1 : now.getMonth(); // 0-11
+    
     // Obtener totales
     const [patientsSnapshot, sessionsSnapshot, paymentsSnapshot] = await Promise.all([
       db.collection('patients').get(),
@@ -37,30 +43,33 @@ export const getDashboardStats = async (req, res) => {
       else if (data.status === 'Cancelled') cancelledSessions++;
     });
 
-    // Calcular ingresos totales
+    // Calcular ingresos totales (solo pagos completados)
     let totalRevenue = 0;
     let pendingPayments = 0;
     let completedPayments = 0;
     paymentsSnapshot.forEach(doc => {
       const data = doc.data();
       const amount = parseFloat(data.amount) || 0;
-      totalRevenue += amount;
       
-      if (data.status === 'pending') pendingPayments++;
-      else if (data.status === 'completed') completedPayments++;
+      if (data.status === 'pending') {
+        pendingPayments++;
+      } else if (data.status === 'completed') {
+        completedPayments++;
+        totalRevenue += amount;
+      }
     });
 
-    // Estadísticas del mes actual
-    const now = new Date();
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+    // Estadísticas del mes seleccionado
     let sessionsThisMonth = 0;
     let revenueThisMonth = 0;
     
     sessionsSnapshot.forEach(doc => {
       const data = doc.data();
       const sessionDate = data.startTime?.toDate?.() || new Date(data.startTime);
-      if (sessionDate >= firstDayOfMonth) {
+      
+      // Comparar solo año y mes, ignorando hora
+      if (sessionDate.getFullYear() === selectedYear && 
+          sessionDate.getMonth() === selectedMonth) {
         sessionsThisMonth++;
       }
     });
@@ -68,7 +77,15 @@ export const getDashboardStats = async (req, res) => {
     paymentsSnapshot.forEach(doc => {
       const data = doc.data();
       const paymentDate = data.paymentDate?.toDate?.() || new Date(data.paymentDate);
-      if (paymentDate >= firstDayOfMonth) {
+      
+      // Usar UTC month para pagos que vienen con hora fija (12:00 UTC)
+      const paymentMonth = paymentDate.getUTCMonth();
+      const paymentYear = paymentDate.getUTCFullYear();
+      
+      // Solo sumar pagos completados del mes seleccionado
+      if (paymentYear === selectedYear && 
+          paymentMonth === selectedMonth &&
+          data.status === 'Completed') {
         revenueThisMonth += parseFloat(data.amount) || 0;
       }
     });
@@ -171,7 +188,9 @@ export const getRevenueByMonth = async (req, res) => {
       const data = doc.data();
       const paymentDate = data.paymentDate?.toDate?.() || new Date(data.paymentDate);
       
-      if (paymentDate.getFullYear() === parseInt(year)) {
+      // Solo sumar pagos completados
+      if (paymentDate.getFullYear() === parseInt(year) && 
+          data.status === 'completed') {
         const month = paymentDate.getMonth();
         monthlyData[month].revenue += parseFloat(data.amount) || 0;
       }
