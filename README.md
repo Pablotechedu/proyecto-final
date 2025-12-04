@@ -2,18 +2,18 @@
 
 Sistema completo de gestión para centros de terapia, desarrollado con stack MERN (MongoDB, Express, React, Node.js).
 
-## 🚀 Características Principales
+##  Características Principales
 
-- ✅ **Gestión de Pacientes**: CRUD completo con búsqueda y filtros
-- ✅ **Gestión de Sesiones**: Programación y seguimiento de sesiones terapéuticas
-- ✅ **Gestión de Pagos**: Control financiero con reportes
-- ✅ **Dashboard Administrativo**: Estadísticas en tiempo real
-- ✅ **Sistema de Usuarios**: Roles y permisos (Admin, Editor, Viewer, Director)
-- ✅ **Autenticación JWT**: Sistema seguro de autenticación
-- ✅ **Subida de Imágenes**: Gestión de archivos con Multer
-- ✅ **Responsive Design**: Interfaz adaptable a todos los dispositivos
+-  **Gestión de Pacientes**: CRUD completo con búsqueda y filtros
+-  **Gestión de Sesiones**: Programación y seguimiento de sesiones terapéuticas
+-  **Gestión de Pagos**: Control financiero con reportes
+-  **Dashboard Administrativo**: Estadísticas en tiempo real
+-  **Sistema de Usuarios**: Roles y permisos (Admin, Editor, Viewer, Director)
+-  **Autenticación JWT**: Sistema seguro de autenticación
+-  **Subida de Imágenes**: Gestión de archivos con Multer
+-  **Responsive Design**: Interfaz adaptable a todos los dispositivos
 
-## 🛠️ Stack Tecnológico
+##  Stack Tecnológico
 
 ### Frontend
 - **React 18** con TypeScript
@@ -30,14 +30,8 @@ Sistema completo de gestión para centros de terapia, desarrollado con stack MER
 - **Multer** para subida de archivos
 - **Bcrypt** para encriptación
 
-## 📋 Requisitos Previos
 
-- Node.js >= 18.x
-- npm >= 9.x
-- Cuenta de Firebase con proyecto configurado
-- Service Account Key de Firebase
-
-## 🔧 Instalación
+##  Instalación
 
 ### 1. Clonar el repositorio
 
@@ -96,9 +90,8 @@ FRONTEND_URL=http://localhost:3000
 2. Genera una nueva clave privada
 3. Guarda el archivo como `backend/serviceAccountKey.json`
 
-⚠️ **IMPORTANTE**: Este archivo NO debe subirse a GitHub (ya está en .gitignore)
 
-## 🚀 Ejecución
+##  Ejecución
 
 ### Desarrollo
 
@@ -235,33 +228,6 @@ npm test
 npm test
 ```
 
-## 📝 Documentación Adicional
-
-- [API Testing](./backend/TEST_API.md)
-- [Backend README](./backend/README.md)
-
-## 🤝 Contribuir
-
-1. Fork el proyecto
-2. Crea una rama para tu feature (`git checkout -b feature/AmazingFeature`)
-3. Commit tus cambios (`git commit -m 'Add some AmazingFeature'`)
-4. Push a la rama (`git push origin feature/AmazingFeature`)
-5. Abre un Pull Request
-
-## 📄 Licencia
-
-Este proyecto fue desarrollado como proyecto final para el curso de Node.js Avanzado.
-
 ## 👥 Autores
 
 - **Pablo Aguilar** - Desarrollo Full Stack
-
-## 🙏 Agradecimientos
-
-- Universidad Galileo
-- Curso de Node.js Avanzado
-- Comunidad de desarrolladores
-
----
-
-**Nota**: Este es un proyecto educativo desarrollado para demostrar conocimientos en desarrollo Full Stack con el stack MERN.
