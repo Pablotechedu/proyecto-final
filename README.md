@@ -2,6 +2,8 @@
 
 Sistema completo de gestión para centros de terapia, desarrollado con stack MERN (MongoDB, Express, React, Node.js).
 
+Link de video con explicacion del proyecto: https://drive.google.com/file/d/1Nd0Nsa-yaCkTOTT3IRPuLuT97aJPv7Qd/view?usp=drive_link
+
 ##  Características Principales
 
 -  **Gestión de Pacientes**: CRUD completo con búsqueda y filtros
